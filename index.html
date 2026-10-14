@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pilote Yacine</title>
+<meta name="description" content="Tableau de bord, carte des zones, journal, objectifs et simulateur pour la livraison Intelcom de Yacine.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23d9561a'/%3E%3Cpath d='M8 20h16M8 14h10' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <form class="card" id="loginForm">
+    <h1>Pilote Yacine</h1>
+    <p class="muted">Entre le code PIN pour ouvrir le tableau de bord.</p>
+    <label class="fl">Code PIN<input type="password" id="pin" inputmode="numeric" autocomplete="off" required></label>
+    <p class="small bad" id="loginErr" hidden></p>
+    <button class="btn" type="submit">Ouvrir</button>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+<header class="top">
+  <h1>Pilote Yacine <small>Livraison Intelcom, station DRUM</small></h1>
+  <span class="small muted" id="hdrinfo"></span>
+</header>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-v="dash" aria-selected="true">Tableau de bord</button>
+  <button role="tab" data-v="map" aria-selected="false">Carte des zones</button>
+  <button role="tab" data-v="log" aria-selected="false">Journal</button>
+  <button role="tab" data-v="goals" aria-selected="false">Objectifs</button>
+  <button role="tab" data-v="sim" aria-selected="false">Simulateur</button>
+  <button role="tab" data-v="tips" aria-selected="false">Optimisation</button>
+</nav>
+
+<section class="view" id="v-dash">
+  <div class="tiles" id="kpis"></div>
+  <div class="grid2">
+    <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne verte pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
+    <div class="card"><h2>Revenu par colis</h2><p class="small muted">Facturé ÷ colis, par journée travaillée. Une route rurale éloignée se voit tout de suite.</p><div id="chPpp"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>Objectifs du mois</h2><div id="goalMini"></div></div>
+    <div class="card"><h2>Dernières journées</h2><div class="tscroll"><table id="lastDays"></table></div></div>
+  </div>
+</section>
+
+<section class="view" id="v-map" hidden>
+  <div class="mapwrap">
+    <div>
+      <div class="mapbox"><div id="map" role="img" aria-label="Carte des localités livrées autour de Drummondville"></div><div class="legend" id="legend"></div></div>
+      <p class="small muted">Taille du cercle : colis livrés. Couleur : revenu par colis, du clair au foncé. Clique sur un cercle pour le détail. Les colis importés depuis les factures PDF s'ajoutent automatiquement.</p>
+      <div class="card" id="locDetail"><h2>Choisis une localité</h2><p class="muted">Clique sur un cercle de la carte ou sur une ligne du classement.</p></div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Zones à privilégier</h2>
+        <p class="small muted">Classement par revenu par colis observé. Une route de 180 colis dans une zone à 2,90 $ vaut 520 $ ; la même à 1,46 $ vaut 263 $.</p>
+        <label class="fl" style="margin:6px 0 10px">Trier par
+          <select id="rankBy"><option value="ppp">revenu par colis</option><option value="rev">revenu total observé</option><option value="n">volume de colis</option><option value="day">revenu moyen par journée</option></select>
+        </label>
+        <div class="rank" id="rank"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-log" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Importer une facture Intelcom</h2>
+      <p class="small muted">Dépose le PDF « Delivery Invoice » de la semaine : les journées, le facturé et chaque colis (code postal, zone, poids, montant) sont extraits automatiquement. Les km et l'essence déjà saisis sont conservés.</p>
+      <input type="file" id="pdfFile" accept="application/pdf" multiple>
+      <div id="pdfStatus" class="small" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h2>Ajouter ou compléter une journée</h2>
+      <p class="small muted">Chaque soir, 30 secondes : km et essence surtout. Le facturé peut attendre l'import de la facture.</p>
+      <form class="f" id="dayForm">
+        <label class="fl">Date<input type="date" id="f_date" required></label>
+        <label class="fl">Colis livrés<input type="number" id="f_parcels" min="0" step="1" placeholder="180"></label>
+        <label class="fl">Facturé ($)<input type="number" id="f_inv" min="0" step="0.01" placeholder="392.45"></label>
+        <label class="fl">Km parcourus<input type="number" id="f_km" min="0" step="1" placeholder="340"></label>
+        <label class="fl">Essence ($)<input type="number" id="f_fuel" min="0" step="0.01" placeholder="62"></label>
+        <label class="fl">Zone principale<select id="f_loc"></select></label>
+        <label class="fl">Note<input type="text" id="f_note" placeholder="route, incident, colis perdu…"></label>
+        <button class="btn" type="submit">Enregistrer</button>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Journées enregistrées</h2><span class="small muted" id="storageMode"></span></div>
+    <div class="tscroll"><table id="logTable"></table></div>
+  </div>
+</section>
+
+<section class="view" id="v-goals" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Mes objectifs</h2>
+      <form class="f" id="goalForm">
+        <label class="fl">Jours par semaine visés<input type="number" id="g_days" min="1" max="7" step="0.5"></label>
+        <label class="fl">Net mensuel visé ($, avant essence)<input type="number" id="g_net" min="0" step="50"></label>
+        <label class="fl">Épargne « van » visée ($)<input type="number" id="g_van" min="0" step="100"></label>
+        <label class="fl">Épargne « van » actuelle ($)<input type="number" id="g_saved" min="0" step="50"></label>
+        <label class="fl">Statut actuel<select id="g_status"><option value="broker">Sous-chauffeur (broker)</option><option value="indep">Indépendant (CNESST 5 %)</option></select></label>
+        <label class="fl">Commission du broker (%)<input type="number" id="g_cut" min="0" max="60" step="1"></label>
+        <label class="fl">Essence moyenne par jour ($) si non saisie<input type="number" id="g_fuel" min="0" step="1"></label>
+        <button class="btn" type="submit">Enregistrer</button>
+      </form>
+    </div>
+    <div class="card"><h2>Où j'en suis</h2><div id="goalDetail"></div></div>
+  </div>
+  <div class="card">
+    <h2>Les 4 étapes du plan</h2>
+    <div class="tscroll"><table>
+      <tr><th>Étape</th><th>Condition pour passer à la suivante</th><th>État</th></tr>
+      <tr><td><b>0. Consolider</b> (oct. 2026 à mars 2027)</td><td>12 semaines consécutives à 4 jours ou plus, 8 000 $ d'épargne van, Visa sous 30 %</td><td id="st0"></td></tr>
+      <tr><td><b>1. Indépendant</b> (2027)</td><td>Van B (10 à 14 k$) remboursé ou 6 paiements sans retard, 216 jours facturés sur 12 mois</td><td id="st1"></td></tr>
+      <tr><td><b>2. Premier chauffeur</b> (2028)</td><td>Chauffeur stable 6 mois, marge broker 700 $ par mois par van</td><td id="st2"></td></tr>
+      <tr><td><b>3. Petite flotte</b> (2029 à 2030)</td><td>3 à 5 vans, marge flotte 2 000 $ par mois, occupation 85 %</td><td id="st3"></td></tr>
+    </table></div>
+  </div>
+</section>
+
+<section class="view" id="v-sim" hidden>
+  <div class="grid2">
+    <div class="card">
+      <h2>Hypothèses</h2>
+      <div style="display:grid;gap:12px">
+        <label class="sl">Jours par semaine <output id="o_days"></output><input type="range" id="s_days" min="2" max="6" step="0.5" value="4.5"></label>
+        <label class="sl">Facturé par jour ($) <output id="o_rev"></output><input type="range" id="s_rev" min="250" max="600" step="10" value="367"></label>
+        <label class="sl">Km par jour (route + navette) <output id="o_km"></output><input type="range" id="s_km" min="150" max="450" step="10" value="350"></label>
+        <label class="sl">Consommation (L/100 km) <output id="o_l"></output><input type="range" id="s_l" min="7" max="16" step="0.5" value="10"></label>
+        <label class="sl">Prix de l'essence ($/L) <output id="o_fuel"></output><input type="range" id="s_fuel" min="1.4" max="2.3" step="0.05" value="1.9"></label>
+        <label class="sl">Commission du broker (%) <output id="o_cut"></output><input type="range" id="s_cut" min="10" max="40" step="1" value="25"></label>
+        <label class="sl">Prix du van taxes incluses ($) <output id="o_van"></output><input type="range" id="s_van" min="4000" max="26000" step="500" value="13800"></label>
+        <label class="sl">Coûts fixes indépendant par mois ($) <output id="o_fix"></output><input type="range" id="s_fix" min="300" max="1200" step="25" value="650"></label>
+        <label class="sl">Financement du van, taux annuel (%), 0 = comptant <output id="o_rate"></output><input type="range" id="s_rate" min="0" max="18" step="0.5" value="10"></label>
+      </div>
+    </div>
+    <div class="card"><h2>Résultat mensuel</h2><div id="simOut"></div></div>
+  </div>
+</section>
+
+<section class="view" id="v-tips" hidden>
+  <div class="card">
+    <h2>Ce que les chiffres recommandent</h2>
+    <p class="small muted">Calculé à partir des factures importées et des saisies. Les conseils changent quand les données changent.</p>
+    <div class="advice" id="advice"></div>
+  </div>
+</section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/db.js"></script>
+<script src="js/pdf-import.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
