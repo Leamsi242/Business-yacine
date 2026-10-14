@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pilote Yacine</title>
 <meta name="description" content="Tableau de bord, carte des zones, journal, objectifs et simulateur pour la livraison Intelcom de Yacine.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23d9561a'/%3E%3Cpath d='M8 20h16M8 14h10' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232EBD6B'/%3E%3Cpath d='M8 20h16M8 14h10' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -41,18 +41,18 @@
 
 <div class="wrap" id="app" hidden>
 <header class="top">
-  <h1>Pilote Yacine <small>Livraison Intelcom, station DRUM</small></h1>
+  <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine <small>Intelcom · DRUM</small></h1>
   <div class="row"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief" style="padding:6px 10px">Brief du jour</button><button class="btn" id="btnEvening" style="padding:6px 10px">Ce soir</button></div>
 </header>
 <div class="shiftbar" id="shiftBar" hidden></div>
 <nav class="tabs" role="tablist">
-  <button role="tab" data-v="world" aria-selected="false">Conduire</button>
-  <button role="tab" data-v="dash" aria-selected="true">Tableau de bord</button>
-  <button role="tab" data-v="map" aria-selected="false">Carte des zones</button>
-  <button role="tab" data-v="log" aria-selected="false">Journal</button>
-  <button role="tab" data-v="goals" aria-selected="false">Objectifs</button>
-  <button role="tab" data-v="sim" aria-selected="false">Simulateur</button>
-  <button role="tab" data-v="tips" aria-selected="false">Optimisation</button>
+  <button role="tab" data-v="world" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l2-5h14l2 5v6h-2a2 2 0 01-4 0H9a2 2 0 01-4 0H3v-6zm3-3l-1 3h14l-1-3H6z"/></svg><span>Conduire</span></button>
+  <button role="tab" data-v="dash" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg><span>Tableau</span></button>
+  <button role="tab" data-v="map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><span>Zones</span></button>
+  <button role="tab" data-v="log" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5V3zm3 5h8v2H8V8zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/></svg><span>Journal</span></button>
+  <button role="tab" data-v="goals" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.6 6.8L12 17l-6.2 3.4 1.6-6.8L2.2 9l6.9-.7L12 2z"/></svg><span>Objectifs</span></button>
+  <button role="tab" data-v="sim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v6H4V4zm0 8h7v8H4v-8zm9 0h7v8h-7v-8z"/></svg><span>Simulateur</span></button>
+  <button role="tab" data-v="tips" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 014 12.7V17H8v-2.3A7 7 0 0112 2zM8 19h8v2H8v-2z"/></svg><span>Conseils</span></button>
 </nav>
 
 <section class="view" id="v-world" hidden>

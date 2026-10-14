@@ -16,7 +16,7 @@
   const cosL = Math.cos(45.9 * Math.PI / 180);
   const W = { x: lon => (lon - LON0) * cosL * SCALE, y: lat => (LAT0 - lat) * SCALE };
   const WORLD_W = W.x(LON1), WORLD_H = W.y(LAT1);
-  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#cfe0f3', '#8fb3dc', '#4f85bf', '#1f5fa8', '#0e3a6e'][Math.min(4, Math.floor(t * 5))]; };
+  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#dff4e8', '#9fe0bb', '#4fc98a', '#1f9d57', '#0b5e33'][Math.min(4, Math.floor(t * 5))]; };
 
   let ctx, cv, raf = null, locs = [], station, home, onArrive, onLeave, keys = {}, joy = { x: 0, y: 0, on: false };
   let arrived = null, van = { x: 0, y: 0, a: -Math.PI / 2, v: 0 }, cam = { x: 0, y: 0, z: 1 }, auto = null, near = null, t0 = 0, dpr = 1, reduced = false;
@@ -86,7 +86,7 @@
     fields.forEach(f => { if (f.x < L || f.x > R || f.y < T || f.y > B) return; ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.a); ctx.fillStyle = f.c < .3 ? '#b8d98a' : f.c < .6 ? '#8fc46a' : '#d9c97a'; ctx.fillRect(-f.w / 2, -f.h / 2, f.w, f.h); ctx.strokeStyle = 'rgba(70,110,40,.18)'; ctx.lineWidth = 2; for (let i = -f.h / 2 + 14; i < f.h / 2; i += 14) { ctx.beginPath(); ctx.moveTo(-f.w / 2, i); ctx.lineTo(f.w / 2, i); ctx.stroke(); } ctx.restore(); });
     // routes
     ROADS.forEach(r => { ctx.beginPath(); r.p.forEach((q, i) => { const x = W.x(q[1]), y = W.y(q[0]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#3b4046'; ctx.lineWidth = r.w + 4; ctx.stroke(); ctx.strokeStyle = '#555b63'; ctx.lineWidth = r.w; ctx.stroke(); ctx.setLineDash([14, 14]); ctx.strokeStyle = r.w > 10 ? '#f2c94c' : '#e8e8e8'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); });
-    ROADS.forEach(r => { const m = r.p[Math.floor(r.p.length / 2)]; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2a7a3b'; ctx.lineWidth = 2; const x = W.x(m[1]) + 10, y = W.y(m[0]) - 24; ctx.beginPath(); ctx.roundRect(x - 2, y - 11, 48, 16, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#1b4d27'; ctx.font = '700 11px "IBM Plex Sans", sans-serif'; ctx.fillText(r.n, x + 4, y + 1); });
+    ROADS.forEach(r => { const m = r.p[Math.floor(r.p.length / 2)]; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2a7a3b'; ctx.lineWidth = 2; const x = W.x(m[1]) + 10, y = W.y(m[0]) - 24; ctx.beginPath(); ctx.roundRect(x - 2, y - 11, 48, 16, 3); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#1b4d27'; ctx.font = '700 11px "Roboto", sans-serif'; ctx.fillText(r.n, x + 4, y + 1); });
     // arbres
     trees.forEach(t => { if (t.x < L || t.x > R || t.y < T || t.y > B) return; ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.ellipse(t.x + 3, t.y + 4, t.s, t.s * .7, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = t.k < .5 ? '#2f7a3e' : '#3f9450'; ctx.beginPath(); ctx.arc(t.x, t.y, t.s, 0, Math.PI * 2); ctx.fill(); });
     // localités
@@ -95,22 +95,22 @@
       const x = W.x(l.lon), y = W.y(l.lat); if (x < L || x > R || y < T || y > B) return;
       const nb = 2 + Math.round(6 * Math.sqrt(l.n / maxN)); const rr = seed(l.code.charCodeAt(0) * 31 + l.code.charCodeAt(2));
       const col = seqColor(l.ppp); const isNear = near && near.code === l.code;
-      if (isNear) { ctx.strokeStyle = '#d9561a'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]); ctx.lineDashOffset = -now / 40; ctx.beginPath(); ctx.arc(x, y, 95, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+      if (isNear) { ctx.strokeStyle = '#2EBD6B'; ctx.lineWidth = 4; ctx.setLineDash([8, 6]); ctx.lineDashOffset = -now / 40; ctx.beginPath(); ctx.arc(x, y, 95, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
       for (let i = 0; i < nb; i++) { const hx = x + (rr() - .5) * 90, hy = y + (rr() - .5) * 70, hw = 16 + rr() * 10, hh = 12 + rr() * 8; ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(hx + 3, hy + 3, hw, hh); ctx.fillStyle = '#e9e4d8'; ctx.fillRect(hx, hy, hw, hh); ctx.fillStyle = col; ctx.fillRect(hx, hy, hw, hh * .45); }
       // drapeau de zone
       ctx.fillStyle = '#5a4a3a'; ctx.fillRect(x - 1.5, y - 60, 3, 60); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x + 1, y - 60); ctx.lineTo(x + 36, y - 52); ctx.lineTo(x + 1, y - 44); ctx.closePath(); ctx.fill();
-      ctx.font = '600 13px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.fillStyle = '#15202b'; ctx.strokeText(l.name, x, y + 56); ctx.fillText(l.name, x, y + 56);
-      ctx.font = '500 11px "IBM Plex Sans", sans-serif'; const t = l.ppp.toFixed(2).replace('.', ',') + ' $/colis'; ctx.strokeText(t, x, y + 70); ctx.fillStyle = '#334'; ctx.fillText(t, x, y + 70); ctx.textAlign = 'start';
+      ctx.font = '600 13px "Manrope", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.fillStyle = '#15202b'; ctx.strokeText(l.name, x, y + 56); ctx.fillText(l.name, x, y + 56);
+      ctx.font = '500 11px "Roboto", sans-serif'; const t = l.ppp.toFixed(2).replace('.', ',') + ' $/colis'; ctx.strokeText(t, x, y + 70); ctx.fillStyle = '#334'; ctx.fillText(t, x, y + 70); ctx.textAlign = 'start';
     });
     // station et domicile
-    drawBuilding(W.x(station.lon), W.y(station.lat) - 190, 90, 54, '#d9561a', 'STATION DRUM', 'Point de départ des routes');
+    drawBuilding(W.x(station.lon), W.y(station.lat) - 190, 90, 54, '#2EBD6B', 'STATION DRUM', 'Point de départ des routes');
     drawBuilding(W.x(home.lon), W.y(home.lat), 50, 40, '#7a4bb3', 'SHERBROOKE', 'Domicile');
     // camionnette
     ctx.save(); ctx.translate(van.x, van.y); ctx.rotate(van.a);
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.roundRect(-16, -9 + 4, 34, 18, 4); ctx.fill();
     ctx.fillStyle = '#1b1f24'; [-9, 7].forEach(wx => { ctx.fillRect(wx - 3, -11, 6, 3); ctx.fillRect(wx - 3, 8, 6, 3); });
     ctx.fillStyle = '#f0f0f0'; ctx.beginPath(); ctx.roundRect(-16, -9, 34, 18, 4); ctx.fill();
-    ctx.fillStyle = '#d9561a'; ctx.fillRect(-16, -9, 22, 18);
+    ctx.fillStyle = '#2EBD6B'; ctx.fillRect(-16, -9, 22, 18);
     ctx.fillStyle = '#9fd3ff'; ctx.fillRect(8, -7, 6, 14);
     ctx.fillStyle = '#fff4b0'; ctx.fillRect(17, -8, 2, 4); ctx.fillRect(17, 4, 2, 4);
     if (Math.abs(van.v) > 30 && !reduced) { ctx.fillStyle = 'rgba(255,244,176,.25)'; ctx.beginPath(); ctx.moveTo(18, -8); ctx.lineTo(70, -26); ctx.lineTo(70, 26); ctx.lineTo(18, 8); ctx.closePath(); ctx.fill(); }
@@ -121,18 +121,18 @@
     ctx.fillStyle = 'rgba(21,32,43,.78)'; ctx.beginPath(); ctx.roundRect(mx - 4, my - 4, mw + 8, mh + 8, 6); ctx.fill();
     const k = mw / WORLD_W; ROADS.forEach(r => { ctx.beginPath(); r.p.forEach((q, i) => { const x = mx + W.x(q[1]) * k, y = my + W.y(q[0]) * k; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.stroke(); });
     locs.forEach(l => { ctx.fillStyle = seqColor(l.ppp); ctx.beginPath(); ctx.arc(mx + W.x(l.lon) * k, my + W.y(l.lat) * k, 2.2, 0, Math.PI * 2); ctx.fill(); });
-    ctx.fillStyle = '#d9561a'; ctx.beginPath(); ctx.arc(mx + van.x * k, my + van.y * k, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2EBD6B'; ctx.beginPath(); ctx.arc(mx + van.x * k, my + van.y * k, 3.5, 0, Math.PI * 2); ctx.fill();
     if (auto) { ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(mx + auto.x * k, my + auto.y * k, 5, 0, Math.PI * 2); ctx.stroke(); }
     // compteur
     ctx.fillStyle = 'rgba(21,32,43,.78)'; ctx.beginPath(); ctx.roundRect(12, vh - 44, 128, 32, 6); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '600 18px "Barlow Condensed", sans-serif'; ctx.fillText(Math.round(Math.abs(van.v) / 5) + ' km/h', 22, vh - 21);
+    ctx.fillStyle = '#fff'; ctx.font = '600 18px "Manrope", sans-serif'; ctx.fillText(Math.round(Math.abs(van.v) / 5) + ' km/h', 22, vh - 21);
   }
   function drawBuilding(x, y, w, h, col, lab, sub) {
     ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x - w / 2 + 5, y - h / 2 + 6, w, h);
     ctx.fillStyle = '#d7d2c8'; ctx.fillRect(x - w / 2, y - h / 2, w, h); ctx.fillStyle = col; ctx.fillRect(x - w / 2, y - h / 2, w, 10);
     ctx.fillStyle = '#9aa3ad'; for (let i = 0; i < 3; i++) ctx.fillRect(x - w / 2 + 8 + i * (w / 3), y + h / 2 - 16, w / 3 - 12, 12);
-    ctx.textAlign = 'center'; ctx.font = '700 13px "Barlow Condensed", sans-serif'; ctx.fillStyle = '#15202b'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(lab, x, y + h / 2 + 16); ctx.fillText(lab, x, y + h / 2 + 16);
-    ctx.font = '500 11px "IBM Plex Sans", sans-serif'; ctx.strokeText(sub, x, y + h / 2 + 30); ctx.fillStyle = '#334'; ctx.fillText(sub, x, y + h / 2 + 30); ctx.textAlign = 'start';
+    ctx.textAlign = 'center'; ctx.font = '700 13px "Manrope", sans-serif'; ctx.fillStyle = '#15202b'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(lab, x, y + h / 2 + 16); ctx.fillText(lab, x, y + h / 2 + 16);
+    ctx.font = '500 11px "Roboto", sans-serif'; ctx.strokeText(sub, x, y + h / 2 + 30); ctx.fillStyle = '#334'; ctx.fillText(sub, x, y + h / 2 + 30); ctx.textAlign = 'start';
   }
   function teleport(lat, lon) { van.x = Math.max(40, Math.min(WORLD_W - 40, W.x(lon))); van.y = Math.max(40, Math.min(WORLD_H - 40, W.y(lat))); van.v = 0; cam.x = van.x; cam.y = van.y; auto = null; }
   window.PY_WORLD = { start, stop, driveTo, setJoystick, teleport, isAuto: () => !!auto };

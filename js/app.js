@@ -61,7 +61,7 @@
       ['Par jour travaillé', money(avgDay * sh), 'moyenne sur ' + days.length + ' jours, ' + money(avgDay) + ' facturés'],
       ['Revenu par colis', money(parcels ? inv / parcels : 0, 2), fmt(parcels) + ' colis ' + label],
       ['Objectif net mensuel', fmt(Math.min(999, Math.round(100 * net / (+S.goals.net || 1)))) + ' %', 'cible ' + money(+S.goals.net)],
-      ['Épargne van', money(+S.goals.saved), 'cible ' + money(+S.goals.van)]
+      (() => { const ws = weekStart(new Date().toISOString().slice(0, 10)); const wd = days.filter(d => d.date >= ws); return ['Cette semaine', wd.length + ' j', 'sur ' + S.goals.days + ' visés · ' + money(wd.reduce((a, d) => a + d.invoiced, 0) * sh) + ' net']; })()
     ].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div><div class="sub">${t[2]}</div></div>`).join('');
     $('#hdrinfo').textContent = days.length + ' journées, ' + fmt(days.reduce((a, d) => a + d.parcels, 0)) + ' colis';
     $('#chWeeks').innerHTML = barChart(weeks.slice(-14).map(w => ({ x: w.wk.slice(5), y: w.inv * sh, sub: w.days + ' j' })), { goal: (+S.goals.net || 0) / 4.33 });
@@ -95,21 +95,21 @@
   }
 
   /* ---------- Carte (Leaflet + OpenStreetMap) ---------- */
-  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#dce8f5', '#9dbde0', '#4f85bf', '#1f5fa8', '#0e3a6e'][Math.min(4, Math.floor(t * 5))]; };
+  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#dff4e8', '#9fe0bb', '#4fc98a', '#1f9d57', '#0b5e33'][Math.min(4, Math.floor(t * 5))]; };
   function renderMap() {
     if (!window.L) return;
     if (!map) {
       map = L.map('map', { scrollWheelZoom: true }).setView([45.88, -72.25], 9);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
-      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#d9561a;border:2px solid #fff;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
+      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#2EBD6B;border:2px solid #fff;border-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
       L.marker([CFG.HOME.lat, CFG.HOME.lon], { icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#7a4bb3;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14] }) }).addTo(map).bindPopup('<b>' + esc(CFG.HOME.name) + '</b><br>Environ 80 km de la station, 30 $ d’essence par jour aller-retour');
-      $('#legend').innerHTML = `<div><span class="sw" style="background:#dce8f5"></span>≈1,30 $/colis</div><div><span class="sw" style="background:#4f85bf"></span>≈2,20 $/colis</div><div><span class="sw" style="background:#0e3a6e"></span>≈3,00 $/colis et plus</div><div><span class="sw" style="background:#d9561a;border-radius:2px"></span>station de départ</div>`;
+      $('#legend').innerHTML = `<div><span class="sw" style="background:#dff4e8"></span>≈1,30 $/colis</div><div><span class="sw" style="background:#4fc98a"></span>≈2,20 $/colis</div><div><span class="sw" style="background:#0b5e33"></span>≈3,00 $/colis et plus</div><div><span class="sw" style="background:#2EBD6B;border-radius:3px"></span>station de départ</div>`;
     }
     if (layer) layer.remove();
     layer = L.layerGroup().addTo(map);
     const maxN = Math.max(1, ...S.locstats.map(l => l.n));
     S.locstats.filter(l => l.lat && l.lon).sort((a, b) => b.n - a.n).forEach(l => {
-      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? '#d9561a' : '#fff', weight: selLoc === l.code ? 3 : 1.5, fillColor: seqColor(l.ppp), fillOpacity: .85 });
+      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? '#0f172a' : '#fff', weight: selLoc === l.code ? 3 : 1.5, fillColor: seqColor(l.ppp), fillOpacity: .85 });
       c.bindTooltip(`<b>${esc(l.name)}</b><br>${fmt(l.n)} colis sur ${l.days} jour${l.days > 1 ? 's' : ''}<br>${fmt(l.ppp, 2)} $/colis`);
       c.on('click', () => selectLoc(l.code));
       c.addTo(layer);

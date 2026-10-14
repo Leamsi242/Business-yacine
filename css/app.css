@@ -1,18 +1,22 @@
 /* Layout: une barre d'onglets fixe en haut, un contenu en colonne unique sur mobile, grille 2 colonnes sur desktop. Identité : panneau routier (condensé, orange balise) sur asphalte froid. */
 :root{
-  --bg:#eef1f5; --card:#ffffff; --fg:#15202b; --muted:#5b6774; --line:#d6dce4;
-  --accent:#d9561a; --accent-fg:#ffffff; --seq1:#dce8f5; --seq2:#9dbde0; --seq3:#4f85bf; --seq4:#1f5fa8; --seq5:#0e3a6e;
-  --good:#1f8a4c; --warn:#b7791f; --bad:#b4302d; --home:#7a4bb3;
-  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif;
+  --bg:#f1f3f4; --card:#ffffff; --fg:#0f172a; --muted:#5f6b7a; --line:#e3e7eb;
+  --accent:#2EBD6B; --accent-fg:#06281a; --accent-dark:#1f9d57; --ink:#0b1b2b; --blue:#1a73e8;
+  --seq1:#dff4e8; --seq2:#9fe0bb; --seq3:#4fc98a; --seq4:#1f9d57; --seq5:#0b5e33;
+  --good:#1e8e3e; --warn:#f29900; --bad:#d93025; --home:#1a73e8;
+  --display:"Manrope","Roboto",system-ui,sans-serif; --body:"Roboto","Manrope",system-ui,sans-serif;
+  --r:20px; --rs:12px; --shadow:0 1px 2px rgba(15,23,42,.06),0 4px 16px rgba(15,23,42,.06); --shadow2:0 8px 28px rgba(15,23,42,.14);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#10151c; --card:#182029; --fg:#e6ebf1; --muted:#97a3b1; --line:#2a3542;
-  --accent:#f0702e; --accent-fg:#14100c; --seq1:#1b2a3c; --seq2:#27476b; --seq3:#3f73ab; --seq4:#6ea2dc; --seq5:#a9ccf5;
-  --good:#4fc27a; --warn:#e0a63a; --bad:#e2605c; --home:#b48ae6; color-scheme:dark}}
+  --bg:#0b1220; --card:#121a2b; --fg:#e8eef6; --muted:#9aa8b8; --line:#223049;
+  --accent:#3ad27e; --accent-fg:#06281a; --accent-dark:#2ebd6b; --ink:#0b1220; --blue:#8ab4f8;
+  --seq1:#14301f; --seq2:#1e5a38; --seq3:#2ebd6b; --seq4:#6ee7a8; --seq5:#b9f5d2;
+  --good:#5ad48a; --warn:#fbbc04; --bad:#f28b82; --home:#8ab4f8; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); --shadow2:0 10px 32px rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#10151c; --card:#182029; --fg:#e6ebf1; --muted:#97a3b1; --line:#2a3542;
-  --accent:#f0702e; --accent-fg:#14100c; --seq1:#1b2a3c; --seq2:#27476b; --seq3:#3f73ab; --seq4:#6ea2dc; --seq5:#a9ccf5;
-  --good:#4fc27a; --warn:#e0a63a; --bad:#e2605c; --home:#b48ae6; color-scheme:dark}
+  --bg:#0b1220; --card:#121a2b; --fg:#e8eef6; --muted:#9aa8b8; --line:#223049;
+  --accent:#3ad27e; --accent-fg:#06281a; --accent-dark:#2ebd6b; --ink:#0b1220; --blue:#8ab4f8;
+  --seq1:#14301f; --seq2:#1e5a38; --seq3:#2ebd6b; --seq4:#6ee7a8; --seq5:#b9f5d2;
+  --good:#5ad48a; --warn:#fbbc04; --bad:#f28b82; --home:#8ab4f8; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); --shadow2:0 10px 32px rgba(0,0,0,.5); color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;margin:0}
@@ -225,3 +229,90 @@ body.noscroll{overflow:hidden}
 .hcol i{width:12px;height:12px;border-radius:2px;background:var(--seq1)}
 .hcol i.l1{background:var(--seq2)}.hcol i.l2{background:var(--seq3)}.hcol i.l3{background:var(--seq4)}.hcol i.l4{background:var(--seq5)}
 .carline{background:color-mix(in srgb,var(--accent) 10%,var(--bg));border-radius:8px;padding:8px 10px;margin-top:8px}
+
+
+/* ===== Direction artistique : Google × Bolt ===== */
+body{font-size:15px;letter-spacing:0}
+h1{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+h1 .mark{width:30px;height:30px;border-radius:10px;background:var(--accent);position:relative;flex:none;box-shadow:0 4px 12px rgba(46,189,107,.4)}
+h1 .mark::after{content:"";position:absolute;left:8px;top:9px;width:14px;height:12px;border:3px solid var(--accent-fg);border-radius:3px;border-top-width:5px}
+h1 small{font-family:var(--body);font-weight:500;font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-left:0}
+.card h2,.tile .val,.overlay h2,.rank .n,.rank .v,.btn.big,nav.tabs button{font-family:var(--display)}
+.card h2{font-weight:700;font-size:19px;letter-spacing:-.01em}
+.card,.tile{border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--shadow)}
+.tile{padding:14px 16px}
+.tile .val{font-weight:800;font-size:30px;letter-spacing:-.02em}
+.tile .lab{letter-spacing:.04em;font-size:11px}
+.tile:hover{box-shadow:var(--shadow2);border-color:transparent}
+input,select,textarea{border-radius:var(--rs);background:var(--bg);border:1px solid transparent;padding:10px 12px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);background:var(--card)}
+button.btn{border-radius:999px;padding:10px 18px;font-family:var(--display);font-weight:700;letter-spacing:0;transition:transform .12s,box-shadow .12s,background .12s;box-shadow:0 2px 8px rgba(46,189,107,.3)}
+button.btn:hover{background:var(--accent-dark);transform:translateY(-1px)}
+button.btn.sec{background:var(--card);color:var(--fg);border:1px solid var(--line);box-shadow:none}
+button.btn.sec:hover{background:var(--bg);transform:none}
+button.btn.danger{box-shadow:none}
+.btn.big{font-size:18px;padding:14px 26px;box-shadow:0 8px 24px rgba(46,189,107,.35)}
+.btn.big kbd{background:rgba(0,0,0,.12)}
+.pill{border-radius:999px;font-weight:600;letter-spacing:.02em}
+.pill.good{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.bar{height:8px;border-radius:999px;background:color-mix(in srgb,var(--fg) 7%,transparent)}
+.bar i{background:var(--accent)}
+table th{letter-spacing:.04em}
+.rank .it{border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.rank .it.sel,.rank .it:hover{border-color:var(--accent)}
+.rank .n{color:var(--accent-dark)}
+.advice .a{border-radius:16px}
+.advice .a i{width:6px}
+.tscroll{border-radius:var(--rs)}
+/* Onglets : barre de chips sur desktop, barre de navigation en bas sur mobile */
+nav.tabs{gap:6px;border-bottom:0;background:transparent;padding-block:6px 10px}
+nav.tabs button{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:700;padding:9px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted);box-shadow:var(--shadow)}
+nav.tabs button svg{width:18px;height:18px;fill:currentColor}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+:root[data-theme="dark"] nav.tabs button[aria-selected="true"],@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}}
+@media (max-width:700px){
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:40;background:var(--card);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));margin:0;display:grid;grid-template-columns:repeat(7,1fr);gap:0;box-shadow:0 -6px 24px rgba(15,23,42,.08)}
+  nav.tabs button{flex-direction:column;gap:3px;font-size:10.5px;padding:6px 2px;border-radius:12px;background:transparent;border:0;box-shadow:none}
+  nav.tabs button svg{width:22px;height:22px}
+  nav.tabs button[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent-dark);border:0}
+  .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  header.top .row{width:100%;justify-content:space-between}
+  #btnEvening{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:41;padding:14px 20px!important;font-size:15px;box-shadow:0 10px 28px rgba(46,189,107,.45)}
+}
+.shiftbar{border-radius:999px;padding:8px 8px 8px 16px}
+/* Accueil : nuit Bolt, action verte */
+.landing{background:var(--ink);color:#fff}
+.landing .scene{background:linear-gradient(#0b1220 0%,#15305a 70%,#1d4078 100%)}
+.landing .sun{background:radial-gradient(circle,#fff,#ffe9a8 55%,rgba(255,233,168,0) 70%);box-shadow:0 0 60px 20px rgba(255,233,168,.25);width:70px;height:70px}
+.landing .cloud{opacity:.14}
+.landing .hills{background:radial-gradient(ellipse 30% 100% at 20% 100%,#16392a 60%,transparent 61%),radial-gradient(ellipse 35% 90% at 55% 100%,#133324 60%,transparent 61%),radial-gradient(ellipse 30% 80% at 85% 100%,#17402d 60%,transparent 61%)}
+.landing .road{background:#1b2535;border-color:#0e1521}
+.landing .road::after{background:repeating-linear-gradient(90deg,var(--accent) 0 40px,transparent 40px 80px)}
+.van-anim .body{background:var(--accent)}
+.landing-copy .eyebrow{color:var(--accent)}
+.landing-copy h1{color:#fff;font-weight:800;letter-spacing:-.03em;display:block}
+.landing-copy .lead{color:#c9d4e3}
+.landing-copy .small{color:#8ea0b8}
+.btn.sec.big{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
+/* Monde et carte */
+.worldbox{border-radius:var(--r);box-shadow:var(--shadow2)}
+.joy .knob{background:var(--accent)}
+.mapbox{border-radius:var(--r);box-shadow:var(--shadow)}
+/* Brief : plein écran nuit avec panneau blanc */
+.overlay{background:rgba(11,18,32,.72)}
+.overlay .panel{border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.brief .road-strip{background:#1b2535;border-radius:12px}
+.brief .road-strip::after{background:repeating-linear-gradient(90deg,var(--accent) 0 24px,transparent 24px 48px)}
+.choice{border-radius:16px;border-width:1.5px}
+.choice.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg))}
+.carline{background:color-mix(in srgb,var(--accent) 12%,var(--bg));border-radius:14px}
+.tile.car{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--card)),var(--card));border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.proj{border-radius:16px}
+.proj.voiture{border-left-color:var(--accent)}
+.login{background:var(--ink)}
+.login .card{border-radius:24px}
+.login h1{color:var(--fg)}
+.legend{border-radius:12px}
+.chart rect.b{fill:var(--seq4)}.chart rect.b.cur{fill:var(--accent)}
+.chart path.l{stroke:var(--accent)}.chart circle.pt{fill:var(--accent)}
+.hcol i{border-radius:3px}
