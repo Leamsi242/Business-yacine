@@ -69,7 +69,7 @@
     const g = S.goals, target = +g.net || 0, pct = target ? Math.min(100, 100 * net / target) : 0, dayNet = avgDay * sh || 1, remaining = Math.max(0, target - net), daysLeft = Math.ceil(remaining / dayNet);
     $('#goalMini').innerHTML = `<div class="kv"><span>Net ${label}</span><b>${money(net)} / ${money(target)}</b></div><div class="bar"><i class="${pct >= 100 ? 'good' : ''}" style="width:${pct}%"></i></div>
       <p class="small muted" style="margin-top:8px">${remaining > 0 ? `Il manque ${money(remaining)} : environ ${daysLeft} journée${daysLeft > 1 ? 's' : ''} au rythme moyen.` : 'Objectif atteint.'}</p>
-      <div class="kv" style="margin-top:8px"><span>Épargne van</span><b>${money(+g.saved)} / ${money(+g.van)}</b></div><div class="bar"><i class="${g.saved >= g.van ? 'good' : ''}" style="width:${Math.min(100, 100 * g.saved / (+g.van || 1))}%"></i></div>`;
+`;
     $('#lastDays').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">$/colis</th></tr>' + days.slice(-8).reverse().map(d => `<tr><td>${d.date}</td><td>${esc(locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${money(d.invoiced, 2)}</td><td class="num">${d.parcels ? fmt(d.invoiced / d.parcels, 2) : '—'}</td></tr>`).join('');
   }
   function barChart(pts, o) {
@@ -95,21 +95,22 @@
   }
 
   /* ---------- Carte (Leaflet + OpenStreetMap) ---------- */
-  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#dff4e8', '#9fe0bb', '#4fc98a', '#1f9d57', '#0b5e33'][Math.min(4, Math.floor(t * 5))]; };
+  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#d9e8de', '#a7cdb6', '#6aab86', '#2f8457', '#0f6b3b'][Math.min(4, Math.floor(t * 5))]; };
   function renderMap() {
+    renderRank();
     if (!window.L) return;
     if (!map) {
       map = L.map('map', { scrollWheelZoom: true }).setView([45.88, -72.25], 9);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
-      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#2EBD6B;border:2px solid #fff;border-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
-      L.marker([CFG.HOME.lat, CFG.HOME.lon], { icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#7a4bb3;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14] }) }).addTo(map).bindPopup('<b>' + esc(CFG.HOME.name) + '</b><br>Environ 80 km de la station, 30 $ d’essence par jour aller-retour');
-      $('#legend').innerHTML = `<div><span class="sw" style="background:#dff4e8"></span>≈1,30 $/colis</div><div><span class="sw" style="background:#4fc98a"></span>≈2,20 $/colis</div><div><span class="sw" style="background:#0b5e33"></span>≈3,00 $/colis et plus</div><div><span class="sw" style="background:#2EBD6B;border-radius:3px"></span>station de départ</div>`;
+      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#0f6b3b;border:2px solid #fff;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
+      L.marker([CFG.HOME.lat, CFG.HOME.lon], { icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#1c4f99;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14] }) }).addTo(map).bindPopup('<b>' + esc(CFG.HOME.name) + '</b><br>Environ 80 km de la station, 30 $ d’essence par jour aller-retour');
+      $('#legend').innerHTML = `<div><span class="sw" style="background:#d9e8de"></span>≈1,30 $/colis</div><div><span class="sw" style="background:#6aab86"></span>≈2,20 $/colis</div><div><span class="sw" style="background:#0f6b3b"></span>≈3,00 $/colis et plus</div><div><span class="sw" style="background:#0f6b3b;border-radius:2px"></span>station de départ</div>`;
     }
     if (layer) layer.remove();
     layer = L.layerGroup().addTo(map);
     const maxN = Math.max(1, ...S.locstats.map(l => l.n));
     S.locstats.filter(l => l.lat && l.lon).sort((a, b) => b.n - a.n).forEach(l => {
-      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? '#0f172a' : '#fff', weight: selLoc === l.code ? 3 : 1.5, fillColor: seqColor(l.ppp), fillOpacity: .85 });
+      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? '#f4c20d' : '#fff', weight: selLoc === l.code ? 3 : 1.5, fillColor: seqColor(l.ppp), fillOpacity: .85 });
       c.bindTooltip(`<b>${esc(l.name)}</b><br>${fmt(l.n)} colis sur ${l.days} jour${l.days > 1 ? 's' : ''}<br>${fmt(l.ppp, 2)} $/colis`);
       c.on('click', () => selectLoc(l.code));
       c.addTo(layer);
@@ -135,7 +136,7 @@
     const key = { ppp: l => l.ppp, rev: l => l.rev, n: l => l.n, day: l => l.rev / (l.days || 1) }[rankBy];
     const fv = { ppp: l => fmt(l.ppp, 2) + ' $', rev: l => money(l.rev), n: l => fmt(l.n), day: l => money(l.rev / (l.days || 1)) }[rankBy];
     locs.sort((a, b) => key(b) - key(a));
-    $('#rank').innerHTML = locs.slice(0, 12).map((l, i) => `<div class="it ${selLoc === l.code ? 'sel' : ''}" data-code="${esc(l.code)}" role="button" tabindex="0"><div class="n">${i + 1}</div><div><div class="t">${esc(l.name)}</div><div class="s">${fmt(l.n)} colis · ${l.days} j · ${fmt(l.ppp, 2)} $/colis</div></div><div class="v">${fv(l)}</div></div>`).join('');
+    $('#rank').innerHTML = locs.slice(0, 12).map((l, i) => `<div class="it ${selLoc === l.code ? 'sel' : ''}" data-code="${esc(l.code)}" role="button" tabindex="0"><div class="n">${i + 1}</div><div><div class="t">${esc(l.name)}</div><div class="s">${fmt(l.n)} colis · ${l.days} j</div></div><div class="v">${fv(l)}</div></div>`).join('');
     $('#rank').querySelectorAll('.it').forEach(it => { it.onclick = () => selectLoc(it.dataset.code); it.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectLoc(it.dataset.code); } }; });
   }
   $('#rankBy').onchange = e => { rankBy = e.target.value; renderRank(); };
@@ -301,6 +302,7 @@
     if (seen) window.PYF.openBrief(false);
   }
   function enterApp(tab) { try { sessionStorage.setItem('py-landing', '1'); } catch (e) {} $('#landing').hidden = true; $('#app').hidden = false; goTab(tab); window.PYF.openBrief(false); }
+  (function fillSign() { const el = $('#signDest'); if (!el) return; const top = (window.PY_LOCSTATS || []).filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 5); el.innerHTML = top.map(l => `<li><span>${esc(l.name)}</span><b>${fmt(l.ppp, 2)} $</b></li>`).join(''); })();
   $('#btnDrive').onclick = () => enterApp('world');
   $('#btnExplore').onclick = () => enterApp('dash');
   window.addEventListener('keydown', e => { if (e.key === 'Enter' && !$('#landing').hidden) enterApp('world'); });

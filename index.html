@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pilote Yacine</title>
 <meta name="description" content="Tableau de bord, carte des zones, journal, objectifs et simulateur pour la livraison Intelcom de Yacine.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232EBD6B'/%3E%3Cpath d='M8 20h16M8 14h10' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Roboto:wght@400;500;700&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230f6b3b'/%3E%3Crect x='3' y='3' width='26' height='26' rx='2' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 9l10 7-10 7z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=Overpass+Mono:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 <div id="login" class="login" hidden>
   <form class="card" id="loginForm">
-    <h1>Pilote Yacine</h1>
+    <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine</h1>
     <p class="muted">Entre le code PIN pour ouvrir le tableau de bord.</p>
     <label class="fl">Code PIN<input type="password" id="pin" inputmode="numeric" autocomplete="off" required></label>
     <p class="small bad" id="loginErr" hidden></p>
@@ -22,26 +22,27 @@
 </div>
 
 <div id="landing" class="landing" hidden>
-  <div class="scene">
-    <div class="sky"><div class="sun"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
-    <div class="hills"></div>
-    <div class="road"><div class="van-anim" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
-  </div>
-  <div class="landing-copy">
-    <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
-    <h1>Pilote Yacine</h1>
-    <p class="lead">Un monde à parcourir : chaque village livré est une destination, chaque route un choix qui change le revenu de la journée.</p>
-    <div class="row">
-      <button class="btn big" id="btnDrive">Prendre la route <kbd>Entrée</kbd></button>
-      <button class="btn sec big" id="btnExplore">Explorer sans conduire</button>
+  <div class="inner">
+    <div class="sign" role="img" aria-label="Panneau Pilote Yacine : destinations et revenu par colis">
+      <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
+      <h1>Pilote<br>Yacine</h1>
+      <ul class="dest" id="signDest"></ul>
     </div>
-    <p class="small muted">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d'un village pour voir ce qu'il rapporte.</p>
+    <div class="landing-copy">
+      <p class="lead">Chaque village livré est une destination. Chaque route est un choix qui change ce que la journée rapporte. Ici, Yacine voit ses chiffres, fixe son objectif du matin et garde le cap vers la voiture.</p>
+      <div class="row">
+        <button class="btn big" id="btnDrive">Prendre la route <kbd>Entrée</kbd></button>
+        <button class="btn sec big" id="btnExplore">Explorer sans conduire</button>
+      </div>
+      <p class="small">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d'un village pour voir ce qu'il rapporte.</p>
+    </div>
   </div>
+  <div class="road"><div class="van-anim" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
 </div>
 
 <div class="wrap" id="app" hidden>
 <header class="top">
-  <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine <small>Intelcom · DRUM</small></h1>
+  <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine <small>Intelcom · Station DRUM</small></h1>
   <div class="row"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief" style="padding:6px 10px">Brief du jour</button><button class="btn" id="btnEvening" style="padding:6px 10px">Ce soir</button></div>
 </header>
 <div class="shiftbar" id="shiftBar" hidden></div>
@@ -91,7 +92,7 @@
     <div>
       <div class="mapbox"><div id="map" role="img" aria-label="Carte des localités livrées autour de Drummondville"></div><div class="legend" id="legend"></div></div>
       <p class="small muted">Taille du cercle : colis livrés. Couleur : revenu par colis, du clair au foncé. Clique sur un cercle pour le détail. Les colis importés depuis les factures PDF s'ajoutent automatiquement.</p>
-      <div class="row" style="margin:8px 0"><button class="btn sec" id="btnLocate">Me localiser</button></div>
+      <div class="row"><button class="btn sec" id="btnLocate">Me localiser</button></div>
       <div class="card" id="locDetail"><h2>Choisis une localité</h2><p class="muted">Clique sur un cercle de la carte ou sur une ligne du classement.</p></div>
       <div class="card"><h2>Score de route</h2><p class="small muted">Avant d'accepter une route : colle les codes postaux de la feuille de route, le site estime le facturé, les km et le net après essence.</p>
         <form class="f" id="routeScore"><label class="fl" style="grid-column:1/-1">Codes postaux<textarea id="rs_codes" placeholder="J0H1A0 J0H1Z0 J0C1S0 G0P1B0 …" style="min-height:60px"></textarea></label><label class="fl">Nombre de colis<input type="number" id="rs_parcels" value="180" min="20"></label><button class="btn" type="submit">Évaluer</button></form>
@@ -157,7 +158,7 @@
   </div>
   <div class="grid2">
     <div class="card" style="grid-column:1/-1"><h2>Mes projets d'épargne</h2><p class="small muted">Ce qui reste chaque semaine une fois l'essence, l'impôt, le loyer et la vie courante payés, réparti entre tes projets par priorité. La date prévue bouge avec le nombre de jours travaillés.</p><div id="savings"></div></div>
-    <div class="card"><h2>Compte à rebours vers le van</h2><div id="vanCountdown"></div></div>
+    <div class="card" style="grid-column:1/-1"><h2>Compte à rebours vers le van</h2><div id="vanCountdown"></div></div>
   </div>
   <div class="card">
     <h2>Les 4 étapes du plan</h2>

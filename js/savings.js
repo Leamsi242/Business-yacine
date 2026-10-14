@@ -2,7 +2,7 @@
 // mur des semaines et prévision de fin de mois. S'appuie sur window.PYAPP et window.PYDB.
 (function () {
   const A = () => window.PYAPP, DB = window.PYDB, $ = s => document.querySelector(s);
-  const KIND = { voiture: { icon: '🚗', label: 'Voiture' }, van: { icon: '🚐', label: 'Van' }, impot: { icon: '🧾', label: 'Impôt' }, urgence: { icon: '🛟', label: 'Sécurité' }, autre: { icon: '🎯', label: 'Projet' } };
+  const KIND = { voiture: { icon: 'VT', label: 'Voiture' }, van: { icon: 'VN', label: 'Van' }, impot: { icon: 'IM', label: 'Impôt' }, urgence: { icon: 'SC', label: 'Sécurité' }, autre: { icon: 'PR', label: 'Projet' } };
   let SV = { goals: [], log: [], budget: {} };
   const num = v => +v || 0;
 
@@ -63,7 +63,7 @@
     const el = $('#carTile'); if (!el) return; const { money } = A();
     const car = SV.goals.find(g => g.kind === 'voiture'); if (!car || !num(car.target)) { el.innerHTML = ''; return; }
     const e = eta(car, alloc[car.id] || 0); const pct = Math.min(100, 100 * num(car.saved) / num(car.target));
-    el.innerHTML = `<div class="tile car"><div class="lab">🚗 ${A().esc(car.name)}</div><div class="val">${money(num(car.saved))}</div><div class="sub">sur ${money(num(car.target))} · ${isFinite(e.weeks) ? e.weeks + ' sem. restantes (' + fmtDate(e.date) + ')' : 'augmenter les jours travaillés'}</div><div class="bar"><i class="${pct >= 100 ? 'good' : ''}" style="width:${pct}%"></i></div></div>`;
+    el.innerHTML = `<div class="tile car"><div class="lab">${A().esc(car.name)} · projet prioritaire</div><div class="val">${money(num(car.saved))}</div><div class="sub">sur ${money(num(car.target))} · ${isFinite(e.weeks) ? e.weeks + ' sem. restantes (' + fmtDate(e.date) + ')' : 'augmenter les jours travaillés'}</div><div class="bar"><i class="${pct >= 100 ? 'good' : ''}" style="width:${pct}%"></i></div></div>`;
   }
 
   /* ---- Formulaires ---- */
@@ -79,7 +79,7 @@
   function openGoalForm(g) {
     const isNew = !g; g = g || { id: 'p' + Date.now().toString(36), name: '', kind: 'autre', target: 0, saved: 0, priority: 2, note: '' };
     modal(`<p class="eyebrow">${isNew ? 'Nouveau projet' : 'Modifier'}</p><h2>${isNew ? 'Un objectif à atteindre' : A().esc(g.name)}</h2>
-      <form id="goalForm2" class="f"><label class="fl">Nom<input id="g2_name" value="${A().esc(g.name)}" required></label><label class="fl">Type<select id="g2_kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${g.kind === k ? 'selected' : ''}>${v.icon} ${v.label}</option>`).join('')}</select></label><label class="fl">Cible ($)<input type="number" id="g2_target" value="${num(g.target)}" min="0" step="50"></label><label class="fl">Déjà épargné ($)<input type="number" id="g2_saved" value="${num(g.saved)}" min="0" step="10"></label><label class="fl">Priorité<select id="g2_prio"><option value="1" ${g.priority == 1 ? 'selected' : ''}>1 : en premier</option><option value="2" ${g.priority == 2 ? 'selected' : ''}>2 : normal</option><option value="3" ${g.priority == 3 ? 'selected' : ''}>3 : ensuite</option></select></label><label class="fl" style="grid-column:1/-1">Note<input id="g2_note" value="${A().esc(g.note || '')}"></label>
+      <form id="goalForm2" class="f"><label class="fl">Nom<input id="g2_name" value="${A().esc(g.name)}" required></label><label class="fl">Type<select id="g2_kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${g.kind === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label><label class="fl">Cible ($)<input type="number" id="g2_target" value="${num(g.target)}" min="0" step="50"></label><label class="fl">Déjà épargné ($)<input type="number" id="g2_saved" value="${num(g.saved)}" min="0" step="10"></label><label class="fl">Priorité<select id="g2_prio"><option value="1" ${g.priority == 1 ? 'selected' : ''}>1 : en premier</option><option value="2" ${g.priority == 2 ? 'selected' : ''}>2 : normal</option><option value="3" ${g.priority == 3 ? 'selected' : ''}>3 : ensuite</option></select></label><label class="fl" style="grid-column:1/-1">Note<input id="g2_note" value="${A().esc(g.note || '')}"></label>
       <div class="row" style="grid-column:1/-1;justify-content:space-between">${isNew ? '<span></span>' : '<button class="btn danger" type="button" id="g2_del">Supprimer</button>'}<div class="row"><button class="btn sec" type="button" id="g2_cancel">Annuler</button><button class="btn big" type="submit">Enregistrer</button></div></div></form>`);
     $('#g2_cancel').onclick = closeModal;
     const del = $('#g2_del'); if (del) del.onclick = async () => { try { await DB.deleteSavingsGoal(g.id); closeModal(); await refresh(); } catch (err) { A().toast(err.message); } };

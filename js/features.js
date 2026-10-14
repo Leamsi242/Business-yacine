@@ -24,7 +24,7 @@
     const best = S.locstats.filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 3);
     const suggested = wk.days >= Math.floor(S.goals.days) ? 'rural' : 'loin';
     let carLine = '';
-    try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline">🚗 <b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd'hui rapproche la voiture d'environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
+    try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline"><b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd'hui rapproche la voiture d'environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
     brief.route = brief.route || suggested;
     const slides = [
       `<p class="eyebrow">${dateTxt}</p><h2>Bonjour Yacine.</h2>
