@@ -229,15 +229,70 @@
     $('#advice').innerHTML = out.join('');
   }
 
+
+  /* ---------- Monde à conduire ---------- */
+  let worldOn = false;
+  function startWorld() {
+    if (!window.PY_WORLD || worldOn) return; worldOn = true;
+    window.PY_WORLD.start({ canvas: $('#world'), locs: S.locstats, station: CFG.STATION, home: CFG.HOME,
+      onArrive: l => {
+        const sh = share(), cls = l.ppp >= 2.6 ? 'good' : l.ppp >= 2.0 ? 'good' : l.ppp >= 1.7 ? 'warn' : 'bad';
+        const p = $('#worldLoc'); p.hidden = false;
+        p.innerHTML = `<h2 style="margin:0 0 4px">${esc(l.name)} <span class="pill ${cls}">${cls === 'good' ? 'Privilégier' : cls === 'warn' ? 'Neutre' : 'Éviter'}</span></h2>
+          <div class="kv"><span>Revenu par colis</span><b>${fmt(l.ppp, 2)} $</b><span>Colis livrés ici</span><b>${fmt(l.n)} sur ${l.days} j</b><span>Une route de 180 colis</span><b>${money(l.ppp * 180)} facturés · ${money(l.ppp * 180 * sh)} net</b></div>
+          <div class="row" style="margin-top:8px"><button class="btn" data-detail="${esc(l.code)}" style="padding:6px 12px">Voir le détail</button></div>`;
+        p.querySelector('[data-detail]').onclick = () => { goTab('map'); selectLoc(l.code); };
+      },
+      onLeave: () => { $('#worldLoc').hidden = true; } });
+    $('#destSel').innerHTML = '<option value="">— choisir une destination —</option>' + S.locstats.filter(l => l.lat).sort((a, b) => b.ppp - a.ppp).map(l => `<option value="${esc(l.code)}">${esc(l.name)} · ${fmt(l.ppp, 2)} $/colis</option>`).join('');
+  }
+  function stopWorld() { if (worldOn && window.PY_WORLD) { window.PY_WORLD.stop(); worldOn = false; } }
+  $('#destSel').onchange = e => { if (e.target.value) { window.PY_WORLD.driveTo(e.target.value); $('#worldHint').textContent = 'Conduite automatique vers ' + e.target.selectedOptions[0].textContent.split(' · ')[0] + ' (toucher une flèche reprend la main)'; } };
+  $('#btnRealMap').onclick = () => goTab('map');
+  (function joystick() {
+    const j = $('#joy'), k = j.querySelector('.knob'); let id = null;
+    const set = (ev) => { const r = j.getBoundingClientRect(); const t = ev.touches ? ev.touches[0] : ev; let x = (t.clientX - r.left - r.width / 2) / (r.width / 2), y = (t.clientY - r.top - r.height / 2) / (r.height / 2); const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; } k.style.transform = `translate(${x * 36}px,${y * 36}px)`; window.PY_WORLD.setJoystick(x, y, true); };
+    const end = () => { k.style.transform = ''; window.PY_WORLD.setJoystick(0, 0, false); };
+    j.addEventListener('pointerdown', e => { j.setPointerCapture(e.pointerId); set(e); }); j.addEventListener('pointermove', e => { if (e.pressure > 0 || e.buttons) set(e); }); j.addEventListener('pointerup', end); j.addEventListener('pointercancel', end);
+  })();
+
+  /* ---------- Compteurs animés ---------- */
+  function animateCounters(root) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    root.querySelectorAll('.tile .val').forEach(el => {
+      const txt = el.textContent; const m = txt.match(/^(-?[\d\s ]+)(,\d+)?(.*)$/); if (!m) return;
+      const target = parseFloat(m[1].replace(/[\s ]/g, '') + (m[2] ? m[2].replace(',', '.') : '')); const dec = m[2] ? m[2].length - 1 : 0; const suffix = m[3];
+      const t0 = performance.now(), dur = 900;
+      const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(target * e, dec) + suffix; if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
+
   /* ---------- Navigation, connexion, init ---------- */
-  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false')); document.querySelectorAll('section.view').forEach(s => s.hidden = s.id !== 'v-' + b.dataset.v); try { localStorage.setItem('py-tab', b.dataset.v); } catch (e) {} if (b.dataset.v === 'map') renderMap(); });
+  function goTab(v) {
+    const b = document.querySelector(`nav.tabs button[data-v="${v}"]`); if (!b) return;
+    document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+    document.querySelectorAll('section.view').forEach(s => { s.hidden = s.id !== 'v-' + v; });
+    try { localStorage.setItem('py-tab', v); } catch (e) {}
+    if (v === 'map') renderMap();
+    if (v === 'world') startWorld(); else stopWorld();
+    if (v === 'dash') animateCounters($('#v-dash'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => goTab(b.dataset.v));
   async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); }
   async function start() {
-    $('#login').hidden = true; $('#app').hidden = false;
+    $('#login').hidden = true;
     $('#f_date').value = new Date().toISOString().slice(0, 10);
+    let seen = false; try { seen = sessionStorage.getItem('py-landing') === '1'; } catch (e) {}
+    if (seen) { $('#app').hidden = false; } else { $('#landing').hidden = false; }
     try { await refresh(); } catch (err) { toast('Chargement impossible : ' + err.message); }
-    try { const t = localStorage.getItem('py-tab'); const b = t && document.querySelector(`nav.tabs button[data-v="${t}"]`); if (b) b.click(); } catch (e) {}
+    if (seen) { let t = 'dash'; try { t = localStorage.getItem('py-tab') || 'dash'; } catch (e) {} goTab(t); }
   }
+  function enterApp(tab) { try { sessionStorage.setItem('py-landing', '1'); } catch (e) {} $('#landing').hidden = true; $('#app').hidden = false; goTab(tab); }
+  $('#btnDrive').onclick = () => enterApp('world');
+  $('#btnExplore').onclick = () => enterApp('dash');
+  window.addEventListener('keydown', e => { if (e.key === 'Enter' && !$('#landing').hidden) enterApp('world'); });
   $('#loginForm').addEventListener('submit', async e => { e.preventDefault(); const err = $('#loginErr'); err.hidden = true; try { await DB.login($('#pin').value.trim()); start(); } catch (ex) { err.textContent = 'PIN refusé ou base injoignable (' + ex.message + ').'; err.hidden = false; } });
   if (DB.online && !DB.isConnected()) { $('#login').hidden = false; } else start();
 })();

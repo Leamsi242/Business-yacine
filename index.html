@@ -21,12 +21,31 @@
   </form>
 </div>
 
+<div id="landing" class="landing" hidden>
+  <div class="scene">
+    <div class="sky"><div class="sun"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
+    <div class="hills"></div>
+    <div class="road"><div class="van-anim" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
+  </div>
+  <div class="landing-copy">
+    <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
+    <h1>Pilote Yacine</h1>
+    <p class="lead">Un monde à parcourir : chaque village livré est une destination, chaque route un choix qui change le revenu de la journée.</p>
+    <div class="row">
+      <button class="btn big" id="btnDrive">Prendre la route <kbd>Entrée</kbd></button>
+      <button class="btn sec big" id="btnExplore">Explorer sans conduire</button>
+    </div>
+    <p class="small muted">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d'un village pour voir ce qu'il rapporte.</p>
+  </div>
+</div>
+
 <div class="wrap" id="app" hidden>
 <header class="top">
   <h1>Pilote Yacine <small>Livraison Intelcom, station DRUM</small></h1>
   <span class="small muted" id="hdrinfo"></span>
 </header>
 <nav class="tabs" role="tablist">
+  <button role="tab" data-v="world" aria-selected="false">Conduire</button>
   <button role="tab" data-v="dash" aria-selected="true">Tableau de bord</button>
   <button role="tab" data-v="map" aria-selected="false">Carte des zones</button>
   <button role="tab" data-v="log" aria-selected="false">Journal</button>
@@ -34,6 +53,21 @@
   <button role="tab" data-v="sim" aria-selected="false">Simulateur</button>
   <button role="tab" data-v="tips" aria-selected="false">Optimisation</button>
 </nav>
+
+<section class="view" id="v-world" hidden>
+  <div class="worldbox">
+    <canvas id="world" aria-label="Monde à conduire : localités livrées autour de Drummondville"></canvas>
+    <div class="hud top">
+      <label class="fl">Conduite automatique vers
+        <select id="destSel"><option value="">— choisir une destination —</option></select>
+      </label>
+      <button class="btn sec" id="btnRealMap">Carte réelle</button>
+    </div>
+    <div class="hud card locpanel" id="worldLoc" hidden></div>
+    <div class="joy" id="joy" aria-hidden="true"><div class="knob"></div></div>
+    <div class="hint" id="worldHint">Flèches / WASD pour conduire · choisis une destination pour la conduite automatique</div>
+  </div>
+</section>
 
 <section class="view" id="v-dash">
   <div class="tiles" id="kpis"></div>
@@ -162,6 +196,7 @@
 <script src="js/data.js"></script>
 <script src="js/db.js"></script>
 <script src="js/pdf-import.js"></script>
+<script src="js/world.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

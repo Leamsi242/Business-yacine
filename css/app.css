@@ -119,3 +119,71 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 .leaflet-control-zoom a{background:var(--card);color:var(--fg);border-color:var(--line)}
 .leaflet-control-attribution{background:color-mix(in srgb,var(--card) 80%,transparent);color:var(--muted)}
 :root[data-theme="dark"] .leaflet-tile,.leaflet-dark .leaflet-tile{filter:brightness(.75) contrast(1.05)}
+
+/* ===== Accueil animé ===== */
+.landing{position:relative;min-height:100vh;overflow:hidden;background:#86c266;color:#15202b;display:flex;flex-direction:column}
+.landing .scene{position:relative;height:min(52vh,520px);min-height:260px;overflow:hidden;background:linear-gradient(#bfe0ff 0%,#e8f3ff 100%)}
+.landing .sky{position:absolute;inset:0}
+.landing .sun{position:absolute;right:12%;top:12%;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,#fff6c2,#ffd166 60%,rgba(255,209,102,0) 70%);box-shadow:0 0 60px 20px rgba(255,209,102,.35);animation:sunrise 6s ease-out both}
+.landing .cloud{position:absolute;background:#fff;border-radius:40px;opacity:.9;height:28px;width:120px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.05))}
+.landing .cloud::before{content:"";position:absolute;left:25px;top:-16px;width:50px;height:40px;background:#fff;border-radius:50%}
+.landing .cloud.c1{top:18%;animation:drift 60s linear infinite}.landing .cloud.c2{top:30%;width:90px;animation:drift 80s linear infinite -30s}.landing .cloud.c3{top:10%;width:150px;animation:drift 100s linear infinite -60s}
+@keyframes drift{from{left:-200px}to{left:110%}}
+@keyframes sunrise{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+.landing .hills{position:absolute;left:-10%;right:-10%;top:52%;height:40%;background:radial-gradient(ellipse 30% 100% at 20% 100%,#86c266 60%,transparent 61%),radial-gradient(ellipse 35% 90% at 55% 100%,#79b85a 60%,transparent 61%),radial-gradient(ellipse 30% 80% at 85% 100%,#8cc86c 60%,transparent 61%)}
+.landing .road{position:absolute;left:0;right:0;bottom:0;height:64px;background:#555b63;border-top:4px solid #3b4046;border-bottom:4px solid #3b4046}
+.landing .road::after{content:"";position:absolute;left:0;right:0;top:50%;height:3px;background:repeating-linear-gradient(90deg,#f2c94c 0 40px,transparent 40px 80px);animation:dash 1.2s linear infinite}
+@keyframes dash{to{background-position:-80px 0}}
+.van-anim{position:absolute;left:12%;top:-22px;width:120px;height:60px;animation:bounce 1.2s ease-in-out infinite}
+.van-anim .body{position:absolute;left:0;top:10px;width:80px;height:40px;background:#d9561a;border-radius:4px 2px 2px 4px}
+.van-anim .cab{position:absolute;left:78px;top:18px;width:36px;height:32px;background:#f0f0f0;border-radius:2px 12px 2px 2px}
+.van-anim .cab::after{content:"";position:absolute;right:4px;top:4px;width:18px;height:14px;background:#9fd3ff;border-radius:0 8px 0 0}
+.van-anim .wheel{position:absolute;bottom:-6px;width:18px;height:18px;border-radius:50%;background:#1b1f24;border:4px solid #777;box-sizing:border-box;animation:spin .5s linear infinite}
+.van-anim .w1{left:12px}.van-anim .w2{left:84px}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.landing-copy{position:relative;z-index:2;padding:28px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));max-width:760px;flex:1}
+.landing-copy .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:#1b4d27;margin:0 0 6px;animation:rise .8s .1s both}
+.landing-copy h1{font-family:var(--display);font-size:clamp(48px,9vw,96px);line-height:.95;margin:0 0 12px;letter-spacing:.01em;animation:rise .8s .25s both}
+.landing-copy .lead{font-size:18px;max-width:60ch;margin:0 0 18px;animation:rise .8s .4s both}
+.landing-copy .row{animation:rise .8s .55s both}
+.landing-copy .small{animation:rise .8s .7s both;color:#2e4a36}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.btn.big{font-family:var(--display);font-size:22px;padding:12px 22px;letter-spacing:.02em;box-shadow:0 8px 24px rgba(217,86,26,.35);transition:transform .15s,box-shadow .15s}
+.btn.big:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(217,86,26,.4)}
+.btn.big kbd{font:600 11px var(--body);background:rgba(255,255,255,.25);padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:middle}
+.btn.sec.big{background:rgba(255,255,255,.75);color:#15202b;border-color:rgba(0,0,0,.1);box-shadow:none}
+@media (max-width:600px){.landing .scene{height:40vh}.van-anim{left:5%;transform:scale(.8)}}
+
+/* ===== Monde à conduire ===== */
+.worldbox{position:relative;height:min(78vh,760px);min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#9ccf7a;box-shadow:0 10px 40px rgba(0,0,0,.12)}
+.worldbox canvas{width:100%;height:100%;display:block;touch-action:none}
+.worldbox .hud{position:absolute;z-index:3}
+.worldbox .hud.top{top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:end;flex-wrap:wrap;pointer-events:none}
+.worldbox .hud.top>*{pointer-events:auto}
+.worldbox .hud.top label{background:color-mix(in srgb,var(--card) 90%,transparent);padding:6px 10px;border-radius:8px;min-width:240px;backdrop-filter:blur(6px)}
+.worldbox .locpanel{left:12px;bottom:60px;max-width:340px;width:calc(100% - 24px);backdrop-filter:blur(8px);background:color-mix(in srgb,var(--card) 92%,transparent);animation:pop .25s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.worldbox .hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(21,32,43,.75);color:#fff;font-size:12px;padding:5px 10px;border-radius:999px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;z-index:3}
+.joy{position:absolute;right:16px;bottom:16px;width:120px;height:120px;border-radius:50%;background:rgba(21,32,43,.35);border:2px solid rgba(255,255,255,.5);display:none;z-index:4;touch-action:none}
+.joy .knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+@media (pointer:coarse){.joy{display:block}.worldbox .hint{display:none}.worldbox .locpanel{bottom:150px}}
+
+/* ===== Dynamique générale ===== */
+section.view{animation:fadeUp .35s ease-out}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tile,.card{transition:transform .2s,box-shadow .2s,border-color .2s}
+.tile:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.08);border-color:var(--seq3)}
+.tile .val{transition:color .3s}
+.chart rect.b{transform-origin:bottom;animation:grow .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.chart path.l{stroke-dasharray:2000;stroke-dashoffset:2000;animation:dash-in 1.4s ease-out forwards}
+@keyframes dash-in{to{stroke-dashoffset:0}}
+.bar i{transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.rank .it{transition:transform .15s,border-color .15s}
+.rank .it:hover{transform:translateX(4px)}
+.advice .a{animation:fadeUp .4s both}
+.advice .a:nth-child(2){animation-delay:.05s}.advice .a:nth-child(3){animation-delay:.1s}.advice .a:nth-child(4){animation-delay:.15s}.advice .a:nth-child(5){animation-delay:.2s}
+nav.tabs button{transition:background .2s,color .2s}
+h1 .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-left:8px;vertical-align:middle;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,138,76,.5)}50%{box-shadow:0 0 0 8px rgba(31,138,76,0)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
