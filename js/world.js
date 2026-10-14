@@ -134,5 +134,6 @@
     ctx.textAlign = 'center'; ctx.font = '700 13px "Barlow Condensed", sans-serif'; ctx.fillStyle = '#15202b'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.strokeText(lab, x, y + h / 2 + 16); ctx.fillText(lab, x, y + h / 2 + 16);
     ctx.font = '500 11px "IBM Plex Sans", sans-serif'; ctx.strokeText(sub, x, y + h / 2 + 30); ctx.fillStyle = '#334'; ctx.fillText(sub, x, y + h / 2 + 30); ctx.textAlign = 'start';
   }
-  window.PY_WORLD = { start, stop, driveTo, setJoystick, isAuto: () => !!auto };
+  function teleport(lat, lon) { van.x = Math.max(40, Math.min(WORLD_W - 40, W.x(lon))); van.y = Math.max(40, Math.min(WORLD_H - 40, W.y(lat))); van.v = 0; cam.x = van.x; cam.y = van.y; auto = null; }
+  window.PY_WORLD = { start, stop, driveTo, setJoystick, teleport, isAuto: () => !!auto };
 })();

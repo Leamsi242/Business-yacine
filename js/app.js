@@ -8,12 +8,13 @@
   const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._x); t._x = setTimeout(() => t.classList.remove('on'), 2600); };
 
   // État chargé depuis la base
-  let S = { days: [], goals: {}, localities: [], parcels: [], locstats: [] };
+  let S = { days: [], goals: {}, localities: [], parcels: [], locstats: [], invoices: [] };
   let LOCBY = {}; let map = null, layer = null, selLoc = null, rankBy = 'ppp';
   const share = () => S.goals.status === 'indep' ? 0.95 : 1 - (+S.goals.cut || 0.25);
 
   async function load() {
-    const [days, goals, localities, parcels] = await Promise.all([DB.getDays(), DB.getGoals(), DB.getLocalities(), DB.getParcelsSince(null)]);
+    const [days, goals, localities, parcels, invoices] = await Promise.all([DB.getDays(), DB.getGoals(), DB.getLocalities(), DB.getParcelsSince(null), DB.getInvoices().catch(() => [])]);
+    S.invoices = invoices || [];
     S.goals = Object.assign({ days: 4.5, net: 4300, van: 8000, saved: 0, status: 'broker', fuel: 60, cut: 0.25 }, goals || {});
     S.localities = localities; LOCBY = {}; localities.forEach(l => LOCBY[l.code] = l);
     // journées : historique embarqué + base (la base l'emporte à date égale)
@@ -163,6 +164,7 @@
       try {
         const r = await window.PYPDF.parseInvoice(f);
         await DB.importInvoice(r.inv, r.parcels, r.days);
+        try { const audit = window.PYF.auditInvoice(r.inv, r.parcels, r.days, S.days); await DB.saveAudit(r.inv.week, audit); } catch (ae) { console.warn(ae); }
         st.innerHTML += `<div><span class="pill good">Importé</span> ${esc(f.name)} : semaine ${esc(r.inv.week)}, ${r.days.length} journées, ${r.parcels.length} colis, total facture ${money(r.inv.total, 2)}</div>`;
       } catch (err) { st.innerHTML += `<div><span class="pill bad">Échec</span> ${esc(f.name)} : ${esc(err.message)}</div>`; }
     }
@@ -260,8 +262,8 @@
   function animateCounters(root) {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     root.querySelectorAll('.tile .val').forEach(el => {
-      const txt = el.textContent; const m = txt.match(/^(-?[\d\s ]+)(,\d+)?(.*)$/); if (!m) return;
-      const target = parseFloat(m[1].replace(/[\s ]/g, '') + (m[2] ? m[2].replace(',', '.') : '')); const dec = m[2] ? m[2].length - 1 : 0; const suffix = m[3];
+      const txt = el.textContent; const m = txt.match(/^(-?[\d\s\u00a0]+?)(,\d+)?\s*([^\d\s\u00a0].*)?$/); if (!m) return;
+      const target = parseFloat(m[1].replace(/[\s\u00a0]/g, '') + (m[2] ? m[2].replace(',', '.') : '')); const dec = m[2] ? m[2].length - 1 : 0; const suffix = m[3] ? ' ' + m[3].trim() : '';
       const t0 = performance.now(), dur = 900;
       const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(target * e, dec) + suffix; if (k < 1) requestAnimationFrame(step); };
       requestAnimationFrame(step);
@@ -280,7 +282,14 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => goTab(b.dataset.v));
-  async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); }
+  async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); } }
+  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, getMap: () => map };
+  $('#btnBrief').onclick = () => window.PYF.openBrief(true);
+  $('#btnEvening').onclick = () => window.PYF.openEvening();
+  $('#evClose').onclick = () => window.PYF.closeEvening();
+  $('#btnLocate').onclick = () => window.PYF.locateOnMap(map);
+  $('#btnWorldGps').onclick = () => window.PYF.locateInWorld();
+  $('#routeScore').addEventListener('submit', e => { e.preventDefault(); window.PYF.scoreRoute(); });
   async function start() {
     $('#login').hidden = true;
     $('#f_date').value = new Date().toISOString().slice(0, 10);
@@ -288,8 +297,10 @@
     if (seen) { $('#app').hidden = false; } else { $('#landing').hidden = false; }
     try { await refresh(); } catch (err) { toast('Chargement impossible : ' + err.message); }
     if (seen) { let t = 'dash'; try { t = localStorage.getItem('py-tab') || 'dash'; } catch (e) {} goTab(t); }
+    window.PYF.resumeShift();
+    if (seen) window.PYF.openBrief(false);
   }
-  function enterApp(tab) { try { sessionStorage.setItem('py-landing', '1'); } catch (e) {} $('#landing').hidden = true; $('#app').hidden = false; goTab(tab); }
+  function enterApp(tab) { try { sessionStorage.setItem('py-landing', '1'); } catch (e) {} $('#landing').hidden = true; $('#app').hidden = false; goTab(tab); window.PYF.openBrief(false); }
   $('#btnDrive').onclick = () => enterApp('world');
   $('#btnExplore').onclick = () => enterApp('dash');
   window.addEventListener('keydown', e => { if (e.key === 'Enter' && !$('#landing').hidden) enterApp('world'); });

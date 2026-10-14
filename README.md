@@ -28,6 +28,10 @@ La clé « anon » est publique par conception : sans le bon PIN, la base refuse
 - **Objectifs** : jours par semaine, net mensuel, épargne van, statut, commission du broker.
 - **Simulateur** : broker vs indépendant, remboursement du van.
 
+### 4. Mise à jour (brief du jour, GPS, audit)
+
+Si le projet Supabase a été créé avant cette version : SQL Editor > coller `supabase/migration_2_shifts_audit.sql` > Run. Ça ajoute la table `shifts` (objectif du matin, km GPS) et la colonne `audit` des factures.
+
 ## Structure
 
 ```

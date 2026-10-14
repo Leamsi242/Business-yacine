@@ -187,3 +187,29 @@ nav.tabs button{transition:background .2s,color .2s}
 h1 .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-left:8px;vertical-align:middle;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(31,138,76,.5)}50%{box-shadow:0 0 0 8px rgba(31,138,76,0)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ===== Brief, saisie du soir, mission, audit ===== */
+body.noscroll{overflow:hidden}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(21,32,43,.55);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px;animation:fadeUp .25s}
+.overlay .panel{background:var(--card);color:var(--fg);border-radius:14px;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.overlay .eyebrow{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 4px}
+.overlay h2{font-family:var(--display);font-size:34px;line-height:1;margin:0 0 10px}
+.overlay .lead{font-size:16px}
+.brief .road-strip{height:34px;background:#555b63;border-radius:8px;position:relative;overflow:hidden;margin:-6px 0 14px}
+.brief .road-strip::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,#f2c94c 0 24px,transparent 24px 48px);animation:dash 1s linear infinite}
+.van-anim.mini{top:-2px;left:8%;transform:scale(.45);transform-origin:left center}
+.brief .body{min-height:240px;animation:fadeUp .3s}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:8px}.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+.choices{display:grid;gap:8px;margin:8px 0}
+.choice{text-align:left;font:inherit;background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;display:grid;gap:2px;position:relative;transition:border-color .15s,transform .15s}
+.choice b{font-size:15px}.choice span{font-size:12.5px;color:var(--muted)}.choice em{font-style:normal;font-size:12.5px}
+.choice.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--bg))}.choice:hover{transform:translateX(3px)}
+.choice .pill{position:absolute;right:10px;top:10px}
+.checks{display:grid;gap:10px;margin:8px 0}.checks label{display:flex;gap:10px;align-items:center;font-size:15px}.checks input{width:22px;height:22px}
+.bigfields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bigfields input,.bigfields select{font-size:20px;padding:10px}
+.shiftbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:color-mix(in srgb,var(--good) 14%,var(--card));border:1px solid color-mix(in srgb,var(--good) 40%,var(--line));border-radius:8px;padding:8px 12px;margin:6px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.shiftbar .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);animation:pulse 2s infinite}
+.shiftbar .btn{padding:5px 10px;margin-left:auto}
+.mi{margin-top:8px;font-size:13.5px}
+.gate{margin-top:12px;font-size:12.5px;color:var(--muted)}.gate .dots{justify-content:flex-start;margin-top:4px}.gate .dots i{width:14px;height:14px;border-radius:3px}.gate .dots i.on{background:var(--good)}
+.audit{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;display:grid;gap:4px}

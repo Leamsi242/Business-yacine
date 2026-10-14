@@ -42,8 +42,9 @@
 <div class="wrap" id="app" hidden>
 <header class="top">
   <h1>Pilote Yacine <small>Livraison Intelcom, station DRUM</small></h1>
-  <span class="small muted" id="hdrinfo"></span>
+  <div class="row"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief" style="padding:6px 10px">Brief du jour</button><button class="btn" id="btnEvening" style="padding:6px 10px">Ce soir</button></div>
 </header>
+<div class="shiftbar" id="shiftBar" hidden></div>
 <nav class="tabs" role="tablist">
   <button role="tab" data-v="world" aria-selected="false">Conduire</button>
   <button role="tab" data-v="dash" aria-selected="true">Tableau de bord</button>
@@ -62,6 +63,7 @@
         <select id="destSel"><option value="">— choisir une destination —</option></select>
       </label>
       <button class="btn sec" id="btnRealMap">Carte réelle</button>
+      <button class="btn sec" id="btnWorldGps">Ma position GPS</button>
     </div>
     <div class="hud card locpanel" id="worldLoc" hidden></div>
     <div class="joy" id="joy" aria-hidden="true"><div class="knob"></div></div>
@@ -76,6 +78,7 @@
     <div class="card"><h2>Revenu par colis</h2><p class="small muted">Facturé ÷ colis, par journée travaillée. Une route rurale éloignée se voit tout de suite.</p><div id="chPpp"></div></div>
   </div>
   <div class="grid2">
+    <div class="card"><h2>Mission de la semaine</h2><div id="mission"></div></div>
     <div class="card"><h2>Objectifs du mois</h2><div id="goalMini"></div></div>
     <div class="card"><h2>Dernières journées</h2><div class="tscroll"><table id="lastDays"></table></div></div>
   </div>
@@ -86,7 +89,11 @@
     <div>
       <div class="mapbox"><div id="map" role="img" aria-label="Carte des localités livrées autour de Drummondville"></div><div class="legend" id="legend"></div></div>
       <p class="small muted">Taille du cercle : colis livrés. Couleur : revenu par colis, du clair au foncé. Clique sur un cercle pour le détail. Les colis importés depuis les factures PDF s'ajoutent automatiquement.</p>
+      <div class="row" style="margin:8px 0"><button class="btn sec" id="btnLocate">Me localiser</button></div>
       <div class="card" id="locDetail"><h2>Choisis une localité</h2><p class="muted">Clique sur un cercle de la carte ou sur une ligne du classement.</p></div>
+      <div class="card"><h2>Score de route</h2><p class="small muted">Avant d'accepter une route : colle les codes postaux de la feuille de route, le site estime le facturé, les km et le net après essence.</p>
+        <form class="f" id="routeScore"><label class="fl" style="grid-column:1/-1">Codes postaux<textarea id="rs_codes" placeholder="J0H1A0 J0H1Z0 J0C1S0 G0P1B0 …" style="min-height:60px"></textarea></label><label class="fl">Nombre de colis<input type="number" id="rs_parcels" value="180" min="20"></label><button class="btn" type="submit">Évaluer</button></form>
+        <div id="rs_out" style="margin-top:8px"></div></div>
     </div>
     <div>
       <div class="card">
@@ -124,6 +131,7 @@
       </form>
     </div>
   </div>
+  <div class="card"><h2>Audit des factures</h2><p class="small muted">Chaque facture importée est recalculée : somme des colis, frais d'administration à 2 %, total, annulations, tarifs comparés à la grille de référence, journées manquantes.</p><div id="audits"></div></div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Journées enregistrées</h2><span class="small muted" id="storageMode"></span></div>
     <div class="tscroll"><table id="logTable"></table></div>
@@ -146,6 +154,9 @@
       </form>
     </div>
     <div class="card"><h2>Où j'en suis</h2><div id="goalDetail"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>Compte à rebours vers le van</h2><div id="vanCountdown"></div></div>
   </div>
   <div class="card">
     <h2>Les 4 étapes du plan</h2>
@@ -187,6 +198,30 @@
   </div>
 </section>
 </div>
+<div class="overlay brief" id="brief" hidden>
+  <div class="panel">
+    <div class="road-strip"><div class="van-anim mini" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
+    <div class="body" id="briefBody"></div>
+    <div class="dots" id="briefDots"></div>
+    <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn sec" id="briefPrev">Précédent</button><div class="row"><button class="btn sec" id="briefSkip">Plus tard</button><button class="btn big" id="briefNext">Suivant</button></div></div>
+  </div>
+</div>
+<div class="overlay" id="evening" hidden>
+  <form class="panel" id="eveningForm">
+    <p class="eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c'est fait</h2>
+    <p class="small muted" id="ev_goal"></p>
+    <input type="hidden" id="ev_date">
+    <div class="bigfields">
+      <label class="fl">Km parcourus<input type="number" id="ev_km" inputmode="numeric" placeholder="340"></label>
+      <label class="fl">Essence ($)<input type="number" id="ev_fuel" inputmode="decimal" step="0.01" placeholder="62"></label>
+      <label class="fl">Colis livrés<input type="number" id="ev_parcels" inputmode="numeric" placeholder="180"></label>
+      <label class="fl">Facturé ($) si connu<input type="number" id="ev_inv" inputmode="decimal" step="0.01" placeholder="sinon via la facture"></label>
+      <label class="fl" style="grid-column:1/-1">Zone principale<select id="ev_loc"></select></label>
+    </div>
+    <div id="ev_result" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn sec" type="button" id="evClose">Fermer</button><button class="btn big" type="submit">Enregistrer</button></div>
+  </form>
+</div>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -196,7 +231,9 @@
 <script src="js/data.js"></script>
 <script src="js/db.js"></script>
 <script src="js/pdf-import.js"></script>
+<script src="js/tariffs.js"></script>
 <script src="js/world.js"></script>
+<script src="js/features.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

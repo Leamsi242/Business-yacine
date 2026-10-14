@@ -101,6 +101,23 @@
       const rows = days.map(d => { const ex = existing.find(x => x.date === d.date) || {}; return Object.assign({ driver: drv, source: 'facture' }, d, { km: ex.km ?? null, fuel: ex.fuel ?? null, loc: ex.loc || d.loc || null, note: ex.note || null }); });
       fail(await client.from('days').upsert(rows, { onConflict: 'date,driver' }));
     },
+    async getShift(date) {
+      if (!online) { return (local().shifts || []).find(x => x.date === date) || null; }
+      const rows = fail(await client.from('shifts').select('*').eq('driver', DRIVER()).eq('date', date)); return rows[0] || null;
+    },
+    async getShifts(since) {
+      if (!online) { return (local().shifts || []).filter(x => !since || x.date >= since); }
+      let q = client.from('shifts').select('*').eq('driver', DRIVER()); if (since) q = q.gte('date', since); return fail(await q.order('date'));
+    },
+    async upsertShift(sh) {
+      sh = Object.assign({ driver: DRIVER() }, sh);
+      if (!online) { const s = local(); s.shifts = (s.shifts || []).filter(x => x.date !== sh.date); s.shifts.push(sh); saveLocal(s); return sh; }
+      return fail(await client.from('shifts').upsert(sh, { onConflict: 'date,driver' }).select());
+    },
+    async saveAudit(week, audit) {
+      if (!online) { const s = local(); const i = s.invoices.find(x => x.week === week); if (i) i.audit = audit; saveLocal(s); return; }
+      fail(await client.from('invoices').update({ audit }).eq('week', week).eq('driver', DRIVER()));
+    },
     exportLocal() { return JSON.stringify(local()); },
     importLocal(txt) { const s = JSON.parse(txt); if (!s || !Array.isArray(s.days)) throw new Error('format'); saveLocal(s); }
   };
