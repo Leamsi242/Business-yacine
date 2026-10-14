@@ -172,8 +172,8 @@
   });
 
   /* ---------- Objectifs ---------- */
-  function fillGoals() { const g = S.goals; $('#g_days').value = g.days; $('#g_net').value = g.net; $('#g_van').value = g.van; $('#g_saved').value = g.saved; $('#g_status').value = g.status; $('#g_fuel').value = g.fuel; $('#g_cut').value = Math.round((+g.cut || 0.25) * 100); }
-  $('#goalForm').addEventListener('submit', async e => { e.preventDefault(); const g = { days: +$('#g_days').value || 4.5, net: +$('#g_net').value || 0, van: +$('#g_van').value || 0, saved: +$('#g_saved').value || 0, status: $('#g_status').value, fuel: +$('#g_fuel').value || 0, cut: (+$('#g_cut').value || 25) / 100 }; try { await DB.saveGoals(g); toast('Objectifs enregistrés'); await refresh(); } catch (err) { toast(err.message); } });
+  function fillGoals() { const g = S.goals; $('#g_days').value = g.days; $('#g_net').value = g.net; $('#g_status').value = g.status; $('#g_fuel').value = g.fuel; $('#g_cut').value = Math.round((+g.cut || 0.25) * 100); }
+  $('#goalForm').addEventListener('submit', async e => { e.preventDefault(); const g = { days: +$('#g_days').value || 4.5, net: +$('#g_net').value || 0, van: +S.goals.van || 8000, saved: +S.goals.saved || 0, status: $('#g_status').value, fuel: +$('#g_fuel').value || 0, cut: (+$('#g_cut').value || 25) / 100 }; try { await DB.saveGoals(g); toast('Objectifs enregistrés'); await refresh(); } catch (err) { toast(err.message); } });
   function renderGoals() {
     const weeks = byWeek(S.days), g = S.goals, sh = share();
     const recent = weeks.slice(-12), ok = recent.filter(w => w.days >= Math.floor(g.days)).length;
@@ -282,7 +282,7 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => goTab(b.dataset.v));
-  async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); } }
+  async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); } if (window.PYS) { try { await window.PYS.refresh(); } catch (e) { console.warn(e); } } }
   window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, getMap: () => map };
   $('#btnBrief').onclick = () => window.PYF.openBrief(true);
   $('#btnEvening').onclick = () => window.PYF.openEvening();

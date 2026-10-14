@@ -73,13 +73,15 @@
 
 <section class="view" id="v-dash">
   <div class="tiles" id="kpis"></div>
+  <div id="carTile"></div>
   <div class="grid2">
     <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne verte pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
     <div class="card"><h2>Revenu par colis</h2><p class="small muted">Facturé ÷ colis, par journée travaillée. Une route rurale éloignée se voit tout de suite.</p><div id="chPpp"></div></div>
   </div>
+  <div class="card"><h2>Mur des semaines</h2><div id="heatmap"></div></div>
   <div class="grid2">
     <div class="card"><h2>Mission de la semaine</h2><div id="mission"></div></div>
-    <div class="card"><h2>Objectifs du mois</h2><div id="goalMini"></div></div>
+    <div class="card"><h2>Objectifs du mois</h2><div id="goalMini"></div><h3>Prévision de fin de mois</h3><div id="forecast"></div></div>
     <div class="card"><h2>Dernières journées</h2><div class="tscroll"><table id="lastDays"></table></div></div>
   </div>
 </section>
@@ -145,8 +147,6 @@
       <form class="f" id="goalForm">
         <label class="fl">Jours par semaine visés<input type="number" id="g_days" min="1" max="7" step="0.5"></label>
         <label class="fl">Net mensuel visé ($, avant essence)<input type="number" id="g_net" min="0" step="50"></label>
-        <label class="fl">Épargne « van » visée ($)<input type="number" id="g_van" min="0" step="100"></label>
-        <label class="fl">Épargne « van » actuelle ($)<input type="number" id="g_saved" min="0" step="50"></label>
         <label class="fl">Statut actuel<select id="g_status"><option value="broker">Sous-chauffeur (broker)</option><option value="indep">Indépendant (CNESST 5 %)</option></select></label>
         <label class="fl">Commission du broker (%)<input type="number" id="g_cut" min="0" max="60" step="1"></label>
         <label class="fl">Essence moyenne par jour ($) si non saisie<input type="number" id="g_fuel" min="0" step="1"></label>
@@ -156,6 +156,7 @@
     <div class="card"><h2>Où j'en suis</h2><div id="goalDetail"></div></div>
   </div>
   <div class="grid2">
+    <div class="card" style="grid-column:1/-1"><h2>Mes projets d'épargne</h2><p class="small muted">Ce qui reste chaque semaine une fois l'essence, l'impôt, le loyer et la vie courante payés, réparti entre tes projets par priorité. La date prévue bouge avec le nombre de jours travaillés.</p><div id="savings"></div></div>
     <div class="card"><h2>Compte à rebours vers le van</h2><div id="vanCountdown"></div></div>
   </div>
   <div class="card">
@@ -222,6 +223,7 @@
     <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn sec" type="button" id="evClose">Fermer</button><button class="btn big" type="submit">Enregistrer</button></div>
   </form>
 </div>
+<div class="overlay" id="modal" hidden><div class="panel"></div></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -234,6 +236,7 @@
 <script src="js/tariffs.js"></script>
 <script src="js/world.js"></script>
 <script src="js/features.js"></script>
+<script src="js/savings.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

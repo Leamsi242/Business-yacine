@@ -23,12 +23,14 @@
     const sh = share(); const avg = S.days.length ? S.days.reduce((a, x) => a + x.invoiced, 0) / S.days.length : 367;
     const best = S.locstats.filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 3);
     const suggested = wk.days >= Math.floor(S.goals.days) ? 'rural' : 'loin';
+    let carLine = '';
+    try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline">🚗 <b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd'hui rapproche la voiture d'environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
     brief.route = brief.route || suggested;
     const slides = [
       `<p class="eyebrow">${dateTxt}</p><h2>Bonjour Yacine.</h2>
        <p class="lead">Cette semaine : <b>${wk.days} jour${wk.days > 1 ? 's' : ''}</b> sur ${S.goals.days} visés, <b>${money(wk.inv * sh)}</b> net déjà facturés. Série en cours : <b>${streak} semaine${streak > 1 ? 's' : ''}</b> réussie${streak > 1 ? 's' : ''} (cible 12 pour la phase 1).</p>
        <div class="bar"><i style="width:${Math.min(100, 100 * wk.days / S.goals.days)}%"></i></div>
-       <p class="small muted">Ta moyenne : ${money(avg)} facturés par jour, soit ${money(avg * sh)} net avant essence.</p>`,
+       <p class="small muted">Ta moyenne : ${money(avg)} facturés par jour, soit ${money(avg * sh)} net avant essence.</p>${carLine}`,
       `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd'hui ?</h2>
        <div class="choices">${Object.entries(ROUTE_TYPES).map(([k, r]) => `<button class="choice ${brief.route === k ? 'on' : ''}" data-route="${k}"><b>${r.label}</b><span>${r.desc}</span><em>${fmt(r.ppp, 2)} $/colis · 180 colis ≈ ${money(r.ppp * 180)} facturés, ${money(r.ppp * 180 * sh)} net</em>${k === suggested ? '<i class="pill good">Conseillée</i>' : ''}</button>`).join('')}</div>
        <p class="small muted">Si on te propose ${best.map(l => l.name).join(', ')}, dis oui : ce sont tes zones les mieux payées.</p>`,
@@ -117,8 +119,11 @@
       try { await DB.upsertDay(row); } catch (err) { A().toast('Refusé : ' + err.message); return; }
       let msg = 'Journée enregistrée.';
       if (sh && row.parcels) { const pct = Math.round(100 * row.parcels / sh.goal_parcels); msg = pct >= 100 ? `Objectif atteint : ${row.parcels} colis (${pct} %). Bravo.` : `${row.parcels} colis sur ${sh.goal_parcels} visés (${pct} %).`; if (row.invoiced) msg += ` Net : ${money(row.invoiced * share())}${row.fuel ? ', après essence ' + money(row.invoiced * share() - row.fuel) : ''}.`; }
-      $('#ev_result').innerHTML = `<p class="pill ${sh && row.parcels >= (sh.goal_parcels || 0) ? 'good' : 'warn'}" style="font-size:14px;padding:8px 12px">${msg}</p>`;
-      await A().refresh(); setTimeout(closeEvening, 1800);
+      let sugg = '';
+      if (window.PYS && row.invoiced) { const sg = window.PYS.eveningSuggestion(row.invoiced * share(), row.fuel || 0); if (sg.carGoal && sg.car > 5) sugg = `<p style="margin-top:8px">Mets <b>${money(sg.car)}</b> de côté pour ${A().esc(sg.carGoal.name)} ce soir (et ${money(sg.tax)} dans la réserve d’impôt). <button class="btn" type="button" id="ev_contrib" style="padding:5px 10px">Verser ${money(sg.car)}</button></p>`; }
+      $('#ev_result').innerHTML = `<p class="pill ${sh && row.parcels >= (sh.goal_parcels || 0) ? 'good' : 'warn'}" style="font-size:14px;padding:8px 12px">${msg}</p>${sugg}`;
+      await A().refresh();
+      const cb = $('#ev_contrib'); if (cb) { cb.onclick = () => { closeEvening(); const sg = window.PYS.eveningSuggestion(row.invoiced * share(), row.fuel || 0); window.PYS.openContrib(sg.carGoal.id, sg.car); }; } else setTimeout(closeEvening, 1800);
     };
   }
   function closeEvening() { $('#evening').hidden = true; document.body.classList.remove('noscroll'); }
@@ -193,12 +198,13 @@
   /* ===== Compte à rebours van ===== */
   function renderVanCountdown() {
     const { S, byWeek, fmt, money, share } = A(); const el = $('#vanCountdown'); if (!el) return;
-    const g = S.goals; const left = Math.max(0, g.van - g.saved); const weeks = byWeek(S.days).slice(-8);
+    const g = Object.assign({}, S.goals); const vp = window.PYS && window.PYS.goals.find(x => x.kind === 'van'); if (vp) { g.van = +vp.target; g.saved = +vp.saved; }
+    const left = Math.max(0, g.van - g.saved); const weeks = byWeek(S.days).slice(-8);
     const avgWeekNet = weeks.length ? weeks.reduce((a, w) => a + w.inv * share() - (w.fuel || w.days * (+g.fuel || 60)), 0) / weeks.length : 0;
     const contrib = Math.max(0, avgWeekNet * 0.35); const wks = contrib ? Math.ceil(left / contrib) : 0;
     const eta = new Date(); eta.setDate(eta.getDate() + wks * 7);
     let streak = 0; const all = byWeek(S.days); for (let i = all.length - 1; i >= 0; i--) { if (all[i].days >= Math.floor(g.days)) streak++; else break; }
-    const conds = [[streak >= 12, `12 semaines consécutives à ${Math.floor(g.days)} jours ou plus`, `${streak} / 12`], [g.saved >= g.van, `${money(g.van)} de côté`, `${money(g.saved)}`], [true, 'Réponse de la station sur les 280 pi³ (à cocher dans Objectifs)', 'à confirmer']];
+    const conds = [[streak >= 12, `12 semaines consécutives à ${Math.floor(g.days)} jours ou plus`, `${streak} / 12`], [g.saved >= g.van, `${money(g.van)} de côté`, `${money(g.saved)}`], [false, 'Réponse de la station sur les 280 pi³', 'à confirmer']];
     el.innerHTML = `<div class="tiles">${[['Reste à épargner', money(left)], ['Apport conseillé / semaine', money(contrib)], ['Semaines restantes', wks ? fmt(wks) : '—'], ['Date d’achat prévue', wks ? eta.toLocaleDateString('fr-CA', { month: 'short', year: 'numeric' }) : '—']].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div></div>`).join('')}</div>
       <div class="bar" style="margin-top:10px"><i class="${left === 0 ? 'good' : ''}" style="width:${Math.min(100, 100 * g.saved / (g.van || 1))}%"></i></div>
       <div style="margin-top:10px">${conds.map(c => `<div class="small"><span class="pill ${c[0] && c[2] !== 'à confirmer' ? 'good' : 'warn'}">${c[0] && c[2] !== 'à confirmer' ? 'OK' : 'En cours'}</span> ${c[1]} · ${c[2]}</div>`).join('')}</div>

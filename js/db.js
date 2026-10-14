@@ -23,6 +23,12 @@
   if (online && pin) connect(pin);
 
   const DRIVER = () => CFG.DEFAULT_DRIVER || 'yacine';
+  const DEFAULT_BUDGET = () => ({ rent: 300, fixed: 250, living: 500, tax_rate: 0.20, weeks_per_month: 4.33 });
+  const DEFAULT_GOALS = () => [
+    { id: 'voiture', name: 'Ma voiture', kind: 'voiture', target: 8000, saved: 0, priority: 1, note: 'Voiture personnelle, achat comptant', active: true },
+    { id: 'impot', name: 'Réserve impôt et RRQ', kind: 'impot', target: 0, saved: 0, priority: 1, note: 'Alimentée à 20 % du net', active: true },
+    { id: 'urgence', name: 'Coussin de sécurité', kind: 'urgence', target: 2000, saved: 0, priority: 2, note: 'Trois semaines de dépenses', active: true },
+    { id: 'van', name: 'Van pour devenir indépendant', kind: 'van', target: 13800, saved: 0, priority: 3, note: 'Phase 1 du plan', active: true }];
   const fail = (r) => { if (r.error) throw new Error(r.error.message); return r.data; };
 
   const api = {
@@ -117,6 +123,33 @@
     async saveAudit(week, audit) {
       if (!online) { const s = local(); const i = s.invoices.find(x => x.week === week); if (i) i.audit = audit; saveLocal(s); return; }
       fail(await client.from('invoices').update({ audit }).eq('week', week).eq('driver', DRIVER()));
+    },
+    /* ---- Épargne et budget ---- */
+    async getSavings() {
+      if (!online) { const s = local(); if (!s.savings) { s.savings = DEFAULT_GOALS(); saveLocal(s); } return { goals: s.savings, log: s.savingsLog || [], budget: s.budget || DEFAULT_BUDGET() }; }
+      const [g, l, b] = await Promise.all([client.from('savings_goals').select('*').eq('driver', DRIVER()).order('priority'), client.from('savings_log').select('*').eq('driver', DRIVER()).order('date', { ascending: false }).limit(200), client.from('budget').select('*').eq('driver', DRIVER())]);
+      return { goals: fail(g), log: fail(l), budget: (fail(b)[0]) || DEFAULT_BUDGET() };
+    },
+    async upsertSavingsGoal(g) {
+      g = Object.assign({ driver: DRIVER() }, g);
+      if (!online) { const s = local(); s.savings = (s.savings || DEFAULT_GOALS()).filter(x => x.id !== g.id); s.savings.push(g); saveLocal(s); return g; }
+      return fail(await client.from('savings_goals').upsert(g, { onConflict: 'id' }).select());
+    },
+    async deleteSavingsGoal(id) {
+      if (!online) { const s = local(); s.savings = (s.savings || []).filter(x => x.id !== id); saveLocal(s); return; }
+      fail(await client.from('savings_goals').delete().eq('id', id));
+    },
+    async addContribution(goalId, amount, note) {
+      const row = { driver: DRIVER(), goal_id: goalId, date: new Date().toISOString().slice(0, 10), amount: +amount, note: note || null };
+      if (!online) { const s = local(); s.savingsLog = s.savingsLog || []; s.savingsLog.unshift(Object.assign({ id: Date.now() }, row)); const g = (s.savings || []).find(x => x.id === goalId); if (g) g.saved = +(+g.saved + +amount).toFixed(2); saveLocal(s); return; }
+      fail(await client.from('savings_log').insert(row));
+      const cur = fail(await client.from('savings_goals').select('saved').eq('id', goalId));
+      fail(await client.from('savings_goals').update({ saved: +((cur[0] ? +cur[0].saved : 0) + +amount).toFixed(2) }).eq('id', goalId));
+    },
+    async saveBudget(b) {
+      b = Object.assign({ driver: DRIVER() }, b);
+      if (!online) { const s = local(); s.budget = b; saveLocal(s); return b; }
+      return fail(await client.from('budget').upsert(b, { onConflict: 'driver' }).select());
     },
     exportLocal() { return JSON.stringify(local()); },
     importLocal(txt) { const s = JSON.parse(txt); if (!s || !Array.isArray(s.days)) throw new Error('format'); saveLocal(s); }

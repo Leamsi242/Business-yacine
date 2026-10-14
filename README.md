@@ -32,6 +32,10 @@ La clé « anon » est publique par conception : sans le bon PIN, la base refuse
 
 Si le projet Supabase a été créé avant cette version : SQL Editor > coller `supabase/migration_2_shifts_audit.sql` > Run. Ça ajoute la table `shifts` (objectif du matin, km GPS) et la colonne `audit` des factures.
 
+### 5. Mise à jour (projets d'épargne : voiture, impôt, sécurité, van)
+
+SQL Editor > coller `supabase/migration_3_savings.sql` > Run. Crée `savings_goals`, `savings_log`, `budget` et les quatre projets de départ.
+
 ## Structure
 
 ```
