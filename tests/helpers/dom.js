@@ -69,7 +69,9 @@ async function boot(opts = {}) {
   if (opts.session) Object.entries(opts.session).forEach(([k, v]) => w.sessionStorage.setItem(k, v));
   if (opts.storage) Object.entries(opts.storage).forEach(([k, v]) => w.localStorage.setItem(k, v));
   w.HTMLCanvasElement.prototype.getContext = () => anyStub();
-  w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, addListener() {} }));
+  // « Réduire les animations » activé : les compteurs du tableau affichent tout de suite leur valeur finale
+  // (sinon une image d'animation peut tomber entre le rendu et l'assertion et lire « 0 j »).
+  w.matchMedia = q => ({ matches: /prefers-reduced-motion:\s*reduce/.test(q), media: q, addEventListener() {}, addListener() {} });
   w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {};
   w.pdfjsLib = fakePdfjs();
   if (!w.Blob.prototype.arrayBuffer) w.Blob.prototype.arrayBuffer = function () { return new Promise((res, rej) => { const r = new w.FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsArrayBuffer(this); }); };

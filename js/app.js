@@ -11,7 +11,8 @@
   // État chargé depuis la base
   let S = { days: [], goals: {}, localities: [], parcels: [], locstats: [], invoices: [] };
   let LOCBY = {}; let map = null, layer = null, selLoc = null, rankBy = 'ppp';
-  const share = () => S.goals.status === 'indep' ? 0.95 : 1 - (+S.goals.cut || 0.25);
+  const U = window.PYU;
+  const share = () => S.goals.status === 'indep' ? 0.95 : 1 - U.numOr(S.goals.cut, 0.25);
 
   async function load() {
     const [days, goals, localities, parcels, invoices] = await Promise.all([DB.getDays(), DB.getGoals(), DB.getLocalities(), DB.getParcelsSince(null), DB.getInvoices().catch(() => [])]);
@@ -43,7 +44,20 @@
   }
 
   const weekStart = ds => window.PYU.weekStart(ds);
-  function byWeek(days) { const m = {}; days.forEach(d => { const k = weekStart(d.date); const w = (m[k] = m[k] || { wk: k, parcels: 0, inv: 0, days: 0, fuel: 0, km: 0 }); w.parcels += d.parcels; w.inv += d.invoiced; w.days++; w.fuel += d.fuel || 0; w.km += d.km || 0; }); return Object.values(m).sort((a, b) => a.wk < b.wk ? -1 : 1); }
+  // Semaines du lundi, de la première à la dernière journée connue. Une semaine sans travail apparaît à 0 jour :
+  // la cacher ferait croire à des semaines consécutives et gonflerait les moyennes.
+  function byWeek(days) {
+    const m = {}; const blank = k => ({ wk: k, parcels: 0, inv: 0, days: 0, fuel: 0, km: 0 });
+    days.forEach(d => { const k = weekStart(d.date); const w = (m[k] = m[k] || blank(k)); w.parcels += d.parcels; w.inv += d.invoiced; w.days++; w.fuel += d.fuel || 0; w.km += d.km || 0; });
+    const ks = Object.keys(m).sort(); if (!ks.length) return [];
+    const out = []; for (let k = ks[0]; k <= ks[ks.length - 1]; k = U.addDays(k, 7)) out.push(m[k] || blank(k));
+    return out;
+  }
+  // Les n dernières semaines complètes (la semaine en cours, partielle, fausserait les moyennes).
+  const recentWeeks = n => { const ws = weekStart(U.today()); return byWeek(S.days).filter(w => w.wk < ws).slice(-n); };
+  const avgInvoiced = fallback => U.avgInvoiced(S.days, fallback);
+  const goalDays = () => Math.floor(+S.goals.days || 4);
+  const streak = () => U.streak(S.days, goalDays(), U.today());
   const fuelOf = d => d.fuel != null ? d.fuel : (+S.goals.fuel || 0);
   const locName = c => c && LOCBY[c] ? LOCBY[c].name : (c || '—');
 
@@ -53,25 +67,26 @@
     const ym = window.PYU.isoMonth(new Date());
     let monthDays = days.filter(d => d.date.startsWith(ym)), label = 'ce mois-ci';
     if (!monthDays.length && days.length) { const lm = days[days.length - 1].date.slice(0, 7); monthDays = days.filter(d => d.date.startsWith(lm)); label = 'dernier mois avec données (' + lm + ')'; }
-    const inv = monthDays.reduce((a, d) => a + d.invoiced, 0), net = inv * sh, parcels = monthDays.reduce((a, d) => a + d.parcels, 0);
+    const inv = monthDays.reduce((a, d) => a + d.invoiced, 0), net = inv * sh;
+    const monthBilled = U.billed(monthDays), parcels = monthBilled.reduce((a, d) => a + d.parcels, 0), pending = monthDays.length - monthBilled.length;
     const fuel = monthDays.reduce((a, d) => a + fuelOf(d), 0);
-    const avgDay = days.length ? days.reduce((a, d) => a + d.invoiced, 0) / days.length : 0;
+    const avgDay = avgInvoiced(0), nBilled = U.billed(days).length;
     $('#kpis').innerHTML = [
-      ['Net ' + label, money(net), fmt(monthDays.length) + ' jours, ' + money(inv) + ' facturés'],
+      ['Net ' + label, money(net), fmt(monthDays.length) + ' jours, ' + money(inv) + ' facturés' + (pending ? ' (' + pending + ' en attente de facture)' : '')],
       ['Après essence', money(net - fuel), money(fuel) + ' d’essence' + (monthDays.some(d => d.fuel == null) ? ' (en partie estimée)' : '')],
-      ['Par jour travaillé', money(avgDay * sh), 'moyenne sur ' + days.length + ' jours, ' + money(avgDay) + ' facturés'],
-      ['Revenu par colis', money(parcels ? inv / parcels : 0, 2), fmt(parcels) + ' colis ' + label],
+      ['Par jour travaillé', money(avgDay * sh), 'moyenne sur ' + nBilled + ' jours facturés, ' + money(avgDay) + ' facturés'],
+      ['Revenu par colis', money(parcels ? monthBilled.reduce((a, d) => a + d.invoiced, 0) / parcels : 0, 2), fmt(parcels) + ' colis facturés ' + label],
       ['Objectif net mensuel', fmt(Math.min(999, Math.round(100 * net / (+S.goals.net || 1)))) + ' %', 'cible ' + money(+S.goals.net)],
       (() => { const ws = weekStart(window.PYU.today()); const wd = days.filter(d => d.date >= ws); return ['Cette semaine', wd.length + ' j', 'sur ' + fmt(S.goals.days, 1) + ' visés · ' + money(wd.reduce((a, d) => a + d.invoiced, 0) * sh) + ' net']; })()
     ].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div><div class="sub">${t[2]}</div></div>`).join('');
     $('#hdrinfo').textContent = days.length + ' journées, ' + fmt(days.reduce((a, d) => a + d.parcels, 0)) + ' colis';
     $('#chWeeks').innerHTML = barChart(weeks.slice(-14).map(w => ({ x: w.wk.slice(5), y: w.inv * sh, sub: w.days + ' j' })), { goal: (+S.goals.net || 0) / 4.33 });
-    $('#chPpp').innerHTML = lineChart(days.slice(-20).map(d => ({ x: d.date.slice(5), y: d.parcels ? d.invoiced / d.parcels : 0, lab: d.date })));
-    const g = S.goals, target = +g.net || 0, pct = target ? Math.min(100, 100 * net / target) : 0, dayNet = avgDay * sh || 1, remaining = Math.max(0, target - net), daysLeft = Math.ceil(remaining / dayNet);
+    $('#chPpp').innerHTML = lineChart(U.billed(days).slice(-20).map(d => ({ x: d.date.slice(5), y: d.parcels ? d.invoiced / d.parcels : 0, lab: d.date })));
+    const g = S.goals, target = +g.net || 0, pct = target ? Math.min(100, 100 * net / target) : 0, dayNet = avgDay * sh, remaining = Math.max(0, target - net), daysLeft = dayNet ? Math.ceil(remaining / dayNet) : 0;
     $('#goalMini').innerHTML = `<div class="kv"><span>Net ${label}</span><b>${money(net)} / ${money(target)}</b></div><div class="bar"><i class="${pct >= 100 ? 'good' : ''}" style="width:${pct}%"></i></div>
-      <p class="small muted" style="margin-top:8px">${remaining > 0 ? `Il manque ${money(remaining)} : environ ${daysLeft} journée${daysLeft > 1 ? 's' : ''} au rythme moyen.` : 'Objectif atteint.'}</p>
+      <p class="small muted" style="margin-top:8px">${remaining > 0 ? `Il manque ${money(remaining)}${daysLeft ? ` : environ ${daysLeft} journée${daysLeft > 1 ? 's' : ''} au rythme moyen` : ''}.` : 'Objectif atteint.'}</p>
 `;
-    $('#lastDays').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">$/colis</th></tr>' + days.slice(-8).reverse().map(d => `<tr><td title="${d.date}">${fdate(d.date)}</td><td>${esc(locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${money(d.invoiced, 2)}</td><td class="num">${d.parcels ? fmt(d.invoiced / d.parcels, 2) : '—'}</td></tr>`).join('');
+    $('#lastDays').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">$/colis</th></tr>' + days.slice(-8).reverse().map(d => `<tr><td title="${d.date}">${fdate(d.date)}</td><td>${esc(locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num">${d.parcels && d.invoiced > 0 ? fmt(d.invoiced / d.parcels, 2) : ''}</td></tr>`).join('');
   }
   function barChart(pts, o) {
     const W = 560, Hh = 220, pl = 44, pr = 10, pt = 14, pb = 34; if (!pts.length) return '<p class="muted small">Pas encore de données.</p>';
@@ -184,42 +199,49 @@
   });
 
   /* ---------- Objectifs ---------- */
-  function fillGoals() { const g = S.goals; $('#g_days').value = g.days; $('#g_net').value = g.net; $('#g_status').value = g.status; $('#g_fuel').value = g.fuel; $('#g_cut').value = Math.round((+g.cut || 0.25) * 100); }
-  $('#goalForm').addEventListener('submit', async e => { e.preventDefault(); const g = { days: +$('#g_days').value || 4.5, net: +$('#g_net').value || 0, van: +S.goals.van || 8000, saved: +S.goals.saved || 0, status: $('#g_status').value, fuel: +$('#g_fuel').value || 0, cut: (+$('#g_cut').value || 25) / 100 }; try { await DB.saveGoals(g); toast('Objectifs enregistrés'); await refresh(); } catch (err) { toast(err.message); } });
+  function fillGoals() { const g = S.goals; $('#g_days').value = g.days; $('#g_net').value = g.net; $('#g_status').value = g.status; $('#g_fuel').value = g.fuel; $('#g_cut').value = Math.round(U.numOr(g.cut, 0.25) * 100); }
+  $('#goalForm').addEventListener('submit', async e => { e.preventDefault(); const g = { days: +$('#g_days').value || 4.5, net: +$('#g_net').value || 0, van: U.numOr(S.goals.van, 8000), saved: +S.goals.saved || 0, status: $('#g_status').value, fuel: U.numOr($('#g_fuel').value, 0), cut: U.numOr($('#g_cut').value, 25) / 100 }; try { await DB.saveGoals(g); toast('Objectifs enregistrés'); await refresh(); } catch (err) { toast(err.message); } });
+  // Mise de fonds exigée par le plan avant d'acheter le van (règle de la phase 0). L'épargne vient du projet « van ».
+  const vanDown = () => U.numOr(S.goals.van, 8000);
+  const fdate2 = d => d ? d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   function renderGoals() {
-    const weeks = byWeek(S.days), g = S.goals, sh = share();
-    const recent = weeks.slice(-12), ok = recent.filter(w => w.days >= Math.floor(g.days)).length;
-    let streak = 0; for (let i = weeks.length - 1; i >= 0; i--) { if (weeks[i].days >= Math.floor(g.days)) streak++; else break; }
-    const avgDay = S.days.length ? S.days.reduce((a, d) => a + d.invoiced, 0) / S.days.length * sh : 0;
+    const g = S.goals, sh = share(), min = goalDays();
+    const recent = U.pastWeeks(S.days, U.today(), 12), ok = recent.filter(w => w.days >= min).length;
+    const st = streak();
+    const avgDay = avgInvoiced(0) * sh;
     const needDaysMonth = g.net && avgDay ? Math.ceil(g.net / avgDay) : 0;
-    const vanLeft = Math.max(0, g.van - g.saved); const weekly = Math.max(0, avgDay * g.days - (+g.fuel || 0) * g.days) * 0.35; const weeksToVan = vanLeft > 0 && weekly ? Math.ceil(vanLeft / weekly) : 0;
+    const vp = window.PYS && window.PYS.vanPlan ? window.PYS.vanPlan(vanDown()) : null;
+    const vanTxt = !vp ? 'aucun projet « van » dans l’épargne' : vp.left <= 0 ? money(vp.saved) + ' de côté : mise de fonds atteinte' : money(vp.left) + (isFinite(vp.weeks) ? ` · ${vp.weeks} sem. (${fdate2(vp.date)})` : ' · jamais au rythme actuel');
     $('#goalDetail').innerHTML = `<div class="kv">
-      <span>Semaines consécutives à ${Math.floor(g.days)} jours ou plus</span><b>${streak} <span class="pill ${streak >= 12 ? 'good' : streak >= 6 ? 'warn' : 'bad'}">cible 12</span></b>
-      <span>Semaines réussies sur les 12 dernières</span><b>${ok} / ${recent.length}</b>
-      <span>Net moyen par jour (statut ${g.status === 'indep' ? 'indépendant' : 'broker ' + Math.round((+g.cut || .25) * 100) + ' %'})</span><b>${money(avgDay)}</b>
+      <span>Semaines consécutives à ${min} jours ou plus</span><b>${st} <span class="pill ${st >= 12 ? 'good' : st >= 6 ? 'warn' : 'bad'}">cible 12</span></b>
+      <span>Semaines réussies sur les ${recent.length} dernières</span><b>${ok} / ${recent.length}</b>
+      <span>Net moyen par jour (statut ${g.status === 'indep' ? 'indépendant' : 'broker ' + Math.round(U.numOr(g.cut, .25) * 100) + ' %'})</span><b>${money(avgDay)}</b>
       <span>Jours nécessaires pour ${money(g.net)} net</span><b>${needDaysMonth} par mois (${fmt(needDaysMonth / 4.33, 1)} par semaine)</b>
-      <span>Épargne van restante</span><b>${money(vanLeft)}${weeksToVan ? ` · ${weeksToVan} sem. en mettant 35 % du net après essence` : ''}</b></div>
-      <p class="small muted" style="margin-top:10px">Règle du plan : acheter le van seulement après 12 semaines consécutives à 4 jours ou plus et 8 000 $ de côté.</p>`;
-    const st = (ok, txt) => `<span class="pill ${ok ? 'good' : 'warn'}">${ok ? 'Atteint' : txt}</span>`;
-    $('#st0').innerHTML = st(streak >= 12 && g.saved >= g.van, 'En cours : ' + streak + '/12 sem., ' + money(g.saved) + '/' + money(g.van));
-    $('#st1').innerHTML = g.status === 'indep' ? st(false, 'En cours') : '<span class="pill">À venir</span>';
+      <span>Reste avant la mise de fonds du van (${money(vanDown())})</span><b>${vanTxt}</b></div>
+      <p class="small muted" style="margin-top:10px">Règle du plan : acheter le van seulement après 12 semaines consécutives à ${min} jours ou plus et ${money(vanDown())} de côté dans le projet « van ».</p>`;
+    const pill = (ok, txt) => `<span class="pill ${ok ? 'good' : 'warn'}">${ok ? 'Atteint' : txt}</span>`;
+    const saved = vp ? vp.saved : 0;
+    $('#st0').innerHTML = pill(st >= 12 && saved >= vanDown(), 'En cours : ' + st + '/12 sem., ' + money(saved) + '/' + money(vanDown()));
+    $('#st1').innerHTML = g.status === 'indep' ? pill(false, 'En cours') : '<span class="pill">À venir</span>';
     $('#st2').innerHTML = '<span class="pill">À venir</span>'; $('#st3').innerHTML = '<span class="pill">À venir</span>';
   }
 
   /* ---------- Simulateur ---------- */
   function renderSim() {
     const v = id => +$(id).value; const days = v('#s_days'), rev = v('#s_rev'), km = v('#s_km'), l = v('#s_l'), fuel = v('#s_fuel'), cut = v('#s_cut') / 100, van = v('#s_van'), fix = v('#s_fix'), rate = v('#s_rate') / 100;
-    $('#o_days').value = fmt(days, 1); $('#o_rev').value = money(rev); $('#o_km').value = km + ' km'; $('#o_l').value = l + ' L'; $('#o_fuel').value = fmt(fuel, 2) + ' $'; $('#o_cut').value = cut * 100 + ' %'; $('#o_van').value = money(van); $('#o_fix').value = money(fix); $('#o_rate').value = rate ? fmt(rate * 100, 1) + ' %' : 'comptant';
+    $('#o_days').value = fmt(days, 1); $('#o_rev').value = money(rev); $('#o_km').value = km + ' km'; $('#o_l').value = l + ' L'; $('#o_fuel').value = fmt(fuel, 2) + ' $'; $('#o_cut').value = fmt(cut * 100) + ' %'; $('#o_van').value = money(van); $('#o_fix').value = money(fix); $('#o_rate').value = rate ? fmt(rate * 100, 1) + ' %' : 'comptant';
     const dpm = days * 4.33, gross = dpm * rev, fuelM = dpm * km * l / 100 * fuel, brokerNet = gross * (1 - cut) - fuelM;
     const pay = rate ? van * (rate / 12) / (1 - Math.pow(1 + rate / 12, -36)) : 0, indepNet = gross * 0.95 - fuelM - fix - pay;
-    const gainCash = gross * (cut - 0.05) - fix, payback = gainCash > 0 ? van / gainCash : Infinity, diff = indepNet - brokerNet, seuil = fix / (cut - 0.05 || 0.01);
+    const gainCash = gross * (cut - 0.05) - fix, payback = gainCash > 0 ? van / gainCash : Infinity, diff = indepNet - brokerNet;
+    // Facturé mensuel à partir duquel l'indépendance (van payé) rattrape le broker : les 5 % de CNESST contre la commission.
+    const seuil = cut > 0.05 ? fix / (cut - 0.05) : Infinity;
     const line = (k, v) => `<span>${k}</span><b>${v}</b>`;
     $('#simOut').innerHTML = `<div class="kv">${line('Jours par mois', fmt(dpm, 1))}${line('Facturé par mois', money(gross))}${line('Essence par mois', money(fuelM) + ' (' + money(km * l / 100 * fuel) + ' par jour)')}</div><hr>
-      <div class="kv">${line('Net chez le broker (' + (cut * 100) + ' %), après essence', '<span style="font-family:var(--mono);font-size:22px">' + money(brokerNet) + '</span>')}
+      <div class="kv">${line('Net chez le broker (' + fmt(cut * 100) + ' %), après essence', '<span style="font-family:var(--mono);font-size:22px">' + money(brokerNet) + '</span>')}
       ${line('Net indépendant (CNESST 5 %), après essence, fixes' + (pay ? ' et paiement du van (' + money(pay) + '/mois sur 3 ans)' : ''), '<span style="font-family:var(--mono);font-size:22px">' + money(indepNet) + '</span>')}
       </div><div class="hero-diff ${diff > 0 ? 'up' : 'down'}"><span class="lab">Écart par mois, indépendant moins broker</span><span class="val">${diff > 0 ? '+' : ''}${money(diff)}</span></div>
-      <div class="kv">${line('Gain indépendant vs broker, van payé comptant', money(gainCash) + ' par mois')}${line('Délai de remboursement du van', isFinite(payback) ? fmt(payback, 1) + ' mois' : 'jamais à ce rythme')}${line('Facturé mensuel minimum pour couvrir les fixes', money(seuil) + ' (' + fmt(seuil / rev, 1) + ' jours)')}</div>
-      <p class="small muted" style="margin-top:10px">${diff > 0 ? `À ce rythme, l’indépendance rapporte ${money(diff * 12)} de plus par an.` : `À ce rythme, rester chez le broker rapporte plus. Il faut ${fmt(seuil / rev / 4.33, 1)} jours par semaine pour couvrir les fixes.`}</p>`;
+      <div class="kv">${line('Gain indépendant vs broker, van payé comptant', money(gainCash) + ' par mois')}${line('Délai de remboursement du van', isFinite(payback) ? fmt(payback, 1) + ' mois' : 'jamais à ce rythme')}${line('Facturé mensuel où l’indépendance rattrape le broker (van payé)', isFinite(seuil) ? money(seuil) + ' (' + fmt(seuil / rev, 1) + ' jours)' : 'jamais : commission trop basse')}</div>
+      <p class="small muted" style="margin-top:10px">${diff > 0 ? `À ce rythme, l’indépendance rapporte ${money(diff * 12)} de plus par an.` : `À ce rythme, rester chez le broker rapporte plus.${isFinite(seuil) ? ` Il faut ${fmt(seuil / rev / 4.33, 1)} jours par semaine (van payé) pour que l’indépendance rattrape le broker.` : ''}`}</p>`;
   }
   document.querySelectorAll('#v-sim input[type=range]').forEach(r => r.addEventListener('input', renderSim));
 
@@ -235,8 +257,8 @@
     if (withFuel.length >= 3) { const km = withFuel.reduce((a, e) => a + e.km, 0), f = withFuel.reduce((a, e) => a + e.fuel, 0), perKm = f / km, per100 = perKm / CFG.FUEL_PRICE * 100; add(per100 > 12 ? 'warn' : '', `Coût réel d’essence : ${fmt(perKm, 3)} $ par km (${money(f / withFuel.length)} par jour)`, `Sur ${withFuel.length} journées saisies. À ${fmt(CFG.FUEL_PRICE, 2)} $/L, environ ${fmt(per100, 1)} L/100 km${per100 > 12 ? ' : élevé pour un Transit Connect, vérifier pression des pneus, climatisation et moteur tournant à l’arrêt.' : ', dans la norme pour ce véhicule.'}`, fmt(perKm, 2) + ' $ / km'); }
     else add('warn', 'Saisir km et essence pendant 10 journées', 'Sans ces deux chiffres, l’essence est estimée à ' + money(+S.goals.fuel || 0) + ' par jour. Le vrai chiffre décide si l’indépendance est rentable et de combien.', money(+S.goals.fuel || 0) + ' / j estimés');
     add('', 'La navette Sherbrooke à Drummondville coûte environ 30 $ par jour', 'Soit 160 km aller-retour, 16 L d’essence et 1 h 40 de route non payée. Sur 216 jours, 5 300 $ par an : plus que le gain d’indépendance à 3 jours par semaine.', '5 300 $ / an');
-    const weeks = byWeek(S.days), recent = weeks.slice(-12), full = recent.filter(w => w.days >= 4).length;
-    add(full >= 8 ? '' : 'warn', `${full} semaine${full > 1 ? 's' : ''} sur les ${recent.length} dernières à 4 jours ou plus`, 'Chaque journée vaut environ ' + money(275) + ' net. Passer de 3,5 à 4,5 jours par semaine ajoute environ 1 200 $ net par mois sans rien changer d’autre.', full + ' / ' + recent.length + ' sem.');
+    const recent = U.pastWeeks(S.days, U.today(), 12), min = goalDays(), full = recent.filter(w => w.days >= min).length, dayNet = avgInvoiced(367) * sh;
+    add(full >= 8 ? '' : 'warn', `${full} semaine${full > 1 ? 's' : ''} sur les ${recent.length} dernières à ${min} jours ou plus`, 'Chaque journée vaut environ ' + money(dayNet) + ' net. Un jour de plus par semaine ajoute environ ' + money(dayNet * 4.33) + ' net par mois sans rien changer d’autre.', full + ' / ' + recent.length + ' sem.');
     add('bad', 'Photographier chaque dépôt de colis', 'Un seul colis perdu a été facturé 422,97 $ en mai, soit 1,5 journée de net. La photo horodatée est la seule défense ; contester chaque déduction par écrit au broker.', '422,97 $');
     add('warn', 'Carte Visa : rester sous 30 % d’utilisation', 'Limite de 1 500 $ pour 2 500 $ d’achats par mois : demander une hausse de limite ou payer en milieu de cycle. Mettre 20 % de chaque paiement de côté pour l’impôt.', '71 % utilisés');
     add('', 'Les colis lourds paient : 40 lb rapporte 5,67 $, 60 lb près de 9 $', '88 colis de plus de 30 lb ont rapporté 497 $ sur 9 semaines, soit 5,6 $ chacun contre 2,09 $ en moyenne.', '5,60 $ / colis');
@@ -274,7 +296,7 @@
   function animateCounters(root) {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     root.querySelectorAll('.tile .val').forEach(el => {
-      const txt = el.textContent; const m = txt.match(/^(-?[\d\s\u00a0]+?)(,\d+)?\s*([^\d\s\u00a0].*)?$/); if (!m) return;
+      const txt = el.dataset.final || el.textContent; el.dataset.final = txt; const m = txt.match(/^(-?[\d\s\u00a0]+?)(,\d+)?\s*([^\d\s\u00a0].*)?$/); if (!m) return;
       const target = parseFloat(m[1].replace(/[\s\u00a0]/g, '') + (m[2] ? m[2].replace(',', '.') : '')); const dec = m[2] ? m[2].length - 1 : 0; const suffix = m[3] ? ' ' + m[3].trim() : '';
       const t0 = performance.now(), dur = 900;
       const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(target * e, dec) + suffix; if (k < 1) requestAnimationFrame(step); };
@@ -307,8 +329,14 @@
     document.addEventListener('click', e => { if (!nav.contains(e.target)) { sheet.classList.remove('open'); more.setAttribute('aria-expanded', 'false'); } });
     window._moreNav = { more, hidden };
   })();
-  async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); } if (window.PYS) { try { await window.PYS.refresh(); } catch (e) { console.warn(e); } } }
-  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, weekStart, isoDate: d => window.PYU.isoDate(d), getMap: () => map };
+  // L'épargne se charge avant le rendu : objectifs, compte à rebours et projets lisent le même projet « van ».
+  async function refresh() {
+    await load(); if (window.PYS) { try { await window.PYS.load(); } catch (e) { console.warn(e); } }
+    fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap();
+    if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); }
+    if (window.PYS) { try { window.PYS.render(); } catch (e) { console.warn(e); } }
+  }
+  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, recentWeeks, avgInvoiced, streak, vanDown, weekStart, isoDate: d => window.PYU.isoDate(d), getMap: () => map };
   $('#btnBrief').onclick = () => window.PYF.openBrief(true);
   $('#btnEvening').onclick = () => window.PYF.openEvening();
   $('#evClose').onclick = () => window.PYF.closeEvening();

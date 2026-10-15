@@ -19,8 +19,8 @@
     if (existing) { brief.route = existing.route_type || 'rural'; brief.parcels = existing.goal_parcels || 180; brief.checklist = existing.checklist || {}; }
     const d = new Date(); const dateTxt = DAYS_FR[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS_FR[d.getMonth()];
     const weeks = byWeek(S.days); const wk = weeks.find(w => w.wk === weekStart(date)) || { days: 0, inv: 0 };
-    let streak = 0; for (let i = weeks.length - 1; i >= 0; i--) { if (weeks[i].wk === weekStart(date)) continue; if (weeks[i].days >= Math.floor(S.goals.days)) streak++; else break; }
-    const sh = share(); const avg = S.days.length ? S.days.reduce((a, x) => a + x.invoiced, 0) / S.days.length : 367;
+    const streak = A().streak();
+    const sh = share(); const avg = A().avgInvoiced(367);
     const best = S.locstats.filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 3);
     const suggested = wk.days >= Math.floor(S.goals.days) ? 'rural' : 'loin';
     let carLine = '';
@@ -170,7 +170,7 @@
     const pts = known.filter(h => h.loc.lat).map(h => h.loc); const cen = pts.length ? { lat: pts.reduce((a, l) => a + l.lat, 0) / pts.length, lon: pts.reduce((a, l) => a + l.lon, 0) / pts.length } : null;
     const urban = ppp < 1.6; const km = cen ? 2 * hav(CFG.STATION, cen) + n * (urban ? 0.25 : 0.6) + 160 : 300;
     const inv = ppp * n, sh = share(), fuel = km * 10 / 100 * CFG.FUEL_PRICE, net = inv * sh - fuel;
-    const avgNet = (S.days.length ? S.days.reduce((a, d) => a + d.invoiced, 0) / S.days.length : 367) * sh - 60;
+    const avgNet = A().avgInvoiced(367) * sh - window.PYU.numOr(S.goals.fuel, 60);
     const verdict = net >= avgNet * 1.15 ? ['good', 'Accepter sans hésiter'] : net >= avgNet * 0.9 ? ['warn', 'Correcte, dans ta moyenne'] : ['bad', 'Demander un échange si possible'];
     $('#rs_out').innerHTML = `<div class="tiles">${[['Facturé estimé', money(inv)], ['Net (part Yacine)', money(inv * sh)], ['Km estimés (navette incluse)', fmt(km) + ' km'], ['Net après essence', money(net)]].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div></div>`).join('')}</div>
       <p style="margin-top:10px"><span class="pill ${verdict[0]}">${verdict[1]}</span> ${fmt(ppp, 2)} $/colis en moyenne sur ${known.length} zone${known.length > 1 ? 's' : ''} connue${known.length > 1 ? 's' : ''} (${[...new Set(known.map(h => h.loc.name))].slice(0, 5).join(', ')}). Ta journée moyenne vaut ${money(avgNet)} net après essence.</p>
@@ -179,12 +179,12 @@
 
   /* ===== Mission de la semaine ===== */
   function renderMission() {
-    const { S, byWeek, fmt, money } = A(); const el = $('#mission'); if (!el) return;
+    const { S, fmt } = A(); const el = $('#mission'); if (!el) return;
     const ws = weekStart(todayISO()); const days = S.days.filter(d => d.date >= ws);
     const g = S.goals; const target = Math.floor(g.days);
     const farDays = days.filter(d => { const l = S.locstats.find(x => x.code === d.loc); return l && l.ppp >= 2.5; }).length;
     const fuelDays = days.filter(d => d.fuel != null && d.km != null).length;
-    const weeks = byWeek(S.days).filter(w => w.wk < ws); let streak = 0; for (let i = weeks.length - 1; i >= 0; i--) { if (weeks[i].days >= target) streak++; else break; }
+    const streak = A().streak();
     const items = [
       { t: `Travailler ${target} jours`, v: days.length, max: target },
       { t: 'Au moins 1 route rurale éloignée (≥ 2,50 $/colis)', v: farDays, max: 1 },
@@ -192,25 +192,23 @@
       { t: 'Moyenne de 170 colis par jour', v: days.length ? Math.round(days.reduce((a, d) => a + d.parcels, 0) / days.length) : 0, max: 170 }
     ];
     const done = items.filter(i => i.v >= i.max).length;
-    el.innerHTML = `<div class="row" style="justify-content:space-between"><span class="pill ${done === items.length ? 'good' : 'warn'}">${done} / ${items.length} réussis</span><span class="small muted">série : ${streak} semaine${streak > 1 ? 's' : ''} · gate phase 1 à 12</span></div>
+    el.innerHTML = `<div class="row" style="justify-content:space-between"><span class="pill ${done === items.length ? 'good' : 'warn'}">${done} / ${items.length} réussis</span><span class="small muted">série : ${streak} semaine${streak > 1 ? 's' : ''} (12 pour la phase 1)</span></div>
       ${items.map(i => `<div class="mi"><div class="row" style="justify-content:space-between"><span>${i.t}</span><b>${fmt(Math.min(i.v, i.max))} / ${i.max}</b></div><div class="bar"><i class="${i.v >= i.max ? 'good' : ''}" style="width:${Math.min(100, 100 * i.v / i.max)}%"></i></div></div>`).join('')}
       <div class="gate"><span>Série vers la phase 1</span><div class="dots">${Array.from({ length: 12 }, (_, i) => `<i class="${i < streak ? 'on' : ''}"></i>`).join('')}</div></div>`;
   }
 
   /* ===== Compte à rebours van ===== */
   function renderVanCountdown() {
-    const { S, byWeek, fmt, money, share } = A(); const el = $('#vanCountdown'); if (!el) return;
-    const g = Object.assign({}, S.goals); const vp = window.PYS && window.PYS.goals.find(x => x.kind === 'van'); if (vp) { g.van = +vp.target; g.saved = +vp.saved; }
-    const left = Math.max(0, g.van - g.saved); const weeks = byWeek(S.days).slice(-8);
-    const avgWeekNet = weeks.length ? weeks.reduce((a, w) => a + w.inv * share() - (w.fuel || w.days * (+g.fuel || 60)), 0) / weeks.length : 0;
-    const contrib = Math.max(0, avgWeekNet * 0.35); const wks = contrib ? Math.ceil(left / contrib) : 0;
-    const eta = new Date(); eta.setDate(eta.getDate() + wks * 7);
-    let streak = 0; const all = byWeek(S.days); for (let i = all.length - 1; i >= 0; i--) { if (all[i].days >= Math.floor(g.days)) streak++; else break; }
-    const conds = [[streak >= 12, `12 semaines consécutives à ${Math.floor(g.days)} jours ou plus`, `${streak} / 12`], [g.saved >= g.van, `${money(g.van)} de côté`, `${money(g.saved)}`], [false, 'Réponse de la station sur les 280 pi³', 'à confirmer']];
-    el.innerHTML = `<div class="tiles">${[['Reste à épargner', money(left)], ['Apport conseillé / semaine', money(contrib)], ['Semaines restantes', wks ? fmt(wks) : '—'], ['Date d’achat prévue', wks ? eta.toLocaleDateString('fr-CA', { month: 'short', year: 'numeric' }) : '—']].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div></div>`).join('')}</div>
-      <div class="bar" style="margin-top:10px"><i class="${left === 0 ? 'good' : ''}" style="width:${Math.min(100, 100 * g.saved / (g.van || 1))}%"></i></div>
-      <div style="margin-top:10px">${conds.map(c => `<div class="small"><span class="pill ${c[0] && c[2] !== 'à confirmer' ? 'good' : 'warn'}">${c[0] && c[2] !== 'à confirmer' ? 'OK' : 'En cours'}</span> ${c[1]} · ${c[2]}</div>`).join('')}</div>
-      <p class="small muted" style="margin-top:8px">Apport calculé à 35 % du net après essence des 8 dernières semaines (${money(avgWeekNet)} par semaine en moyenne).</p>`;
+    const { S, fmt, money, esc } = A(); const el = $('#vanCountdown'); if (!el) return;
+    const down = A().vanDown(), vp = window.PYS && window.PYS.vanPlan ? window.PYS.vanPlan(down) : null;
+    if (!vp) { el.innerHTML = '<p class="small muted">Ajoute un projet de type « Van » dans « Mes projets d’épargne » pour suivre la mise de fonds.</p>'; return; }
+    const streak = A().streak(), min = Math.floor(+S.goals.days || 4);
+    const dateTxt = vp.left <= 0 ? 'atteinte' : isFinite(vp.weeks) ? vp.date.toLocaleDateString('fr-CA', { month: 'short', year: 'numeric' }) : 'jamais';
+    const conds = [[streak >= 12, `12 semaines consécutives à ${min} jours ou plus`, `${streak} / 12`], [vp.left <= 0, `${money(down)} de côté`, money(vp.saved)], [false, 'Réponse de la station sur les 280 pi³', 'à confirmer']];
+    el.innerHTML = `<div class="tiles">${[['Reste avant la mise de fonds', money(vp.left)], ['Apport cette semaine', money(vp.weekly)], ['Semaines restantes', vp.left <= 0 ? '0' : isFinite(vp.weeks) ? fmt(vp.weeks) : '—'], ['Mise de fonds prévue', dateTxt]].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div></div>`).join('')}</div>
+      <div class="bar" style="margin-top:10px"><i class="${vp.left <= 0 ? 'good' : ''}" style="width:${Math.min(100, 100 * vp.saved / (down || 1))}%"></i></div>
+      <div style="margin-top:10px">${conds.map(c => `<div class="small"><span class="pill ${c[0] ? 'good' : 'warn'}">${c[0] ? 'OK' : 'En cours'}</span> ${c[1]} · ${c[2]}</div>`).join('')}</div>
+      <p class="small muted" style="margin-top:8px">Mêmes chiffres que le projet « ${esc(vp.goal.name)} » (prix visé ${money(vp.target)}).${!vp.weekly && vp.first ? ` L’épargne du van commence quand « ${esc(vp.first.name)} » est payé : la date en tient compte.` : ''}</p>`;
   }
 
   /* ===== Géolocalisation sur la carte et dans le monde ===== */

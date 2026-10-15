@@ -89,7 +89,7 @@ describe('prévision de fin de mois et mur des semaines', () => {
       const t = c.$('#forecast').textContent.replace(/ /g, ' ');
       assert.match(t, /Déjà net ce mois1 500 \$ \(5 j\)/); // 1er, 5, 6, 7 et 8 octobre à 300 $ net
       assert.match(t, /Jours restants16/);
-      assert.match(t, /il faut 10 j au total/); // (4300 − 1500) / 300
+      assert.match(t, /encore 10 j de travail nécessaires/); // (4300 − 1500) / 300
     } finally { c.close(); }
   });
   test('mur des 26 dernières semaines : une case par jour, les journées travaillées sont colorées et datées', async () => {

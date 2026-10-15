@@ -30,6 +30,10 @@
     { id: 'urgence', name: 'Coussin de sécurité', kind: 'urgence', target: 2000, saved: 0, priority: 2, note: 'Trois semaines de dépenses', active: true },
     { id: 'van', name: 'Van pour devenir indépendant', kind: 'van', target: 13800, saved: 0, priority: 3, note: 'Phase 1 du plan', active: true }];
   const fail = (r) => { if (r.error) throw new Error(r.error.message); return r.data; };
+  // Supabase renvoie au plus 1 000 lignes par requête : on lit par pages jusqu'à la dernière.
+  // `query` fabrique une requête neuve à chaque page (un constructeur Supabase ne sert qu'une fois).
+  const PAGE = 1000;
+  async function readAll(query) { const out = []; for (let from = 0; ; from += PAGE) { const rows = fail(await query().range(from, from + PAGE - 1)); out.push(...rows); if (rows.length < PAGE) return out; } }
 
   const api = {
     online, isConnected: () => !online || !!client, hasPin: () => !!pin,
@@ -48,7 +52,7 @@
 
     async getDays() {
       if (!online) return local().days;
-      return fail(await client.from('days').select('*').order('date'));
+      return readAll(() => client.from('days').select('*').order('date'));
     },
     async upsertDay(d) {
       d = Object.assign({ driver: DRIVER(), source: 'saisie' }, d);
@@ -84,8 +88,7 @@
 
     async getParcelsSince(date) {
       if (!online) return local().parcels.filter(p => !date || p.date >= date);
-      let q = client.from('parcels').select('*'); if (date) q = q.gte('date', date);
-      return fail(await q.order('date'));
+      return readAll(() => { let q = client.from('parcels').select('*'); if (date) q = q.gte('date', date); return q.order('date').order('tracking'); });
     },
     async getInvoices() {
       if (!online) return local().invoices;
@@ -151,6 +154,7 @@
       if (!online) { const s = local(); s.budget = b; saveLocal(s); return b; }
       return fail(await client.from('budget').upsert(b, { onConflict: 'driver' }).select());
     },
+    _readAll: readAll,
     exportLocal() { return JSON.stringify(local()); },
     importLocal(txt) { const s = JSON.parse(txt); if (!s || !Array.isArray(s.days)) throw new Error('format'); saveLocal(s); }
   };
