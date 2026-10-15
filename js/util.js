@@ -38,5 +38,27 @@
     return n;
   }
 
-  window.PYU = { isoDate, isoMonth, today: () => isoDate(new Date()), addDays, weekStart, tariffKey, numOr, billed, avgInvoiced, pastWeeks, streak };
+  // Rampe séquentielle partagée par la carte, le monde à conduire et le mur des semaines : graphite du gris clair
+  // au quasi-noir en clair, inversée en sombre pour que la marque la plus contrastée reste la plus payante.
+  // Les mêmes valeurs sont reprises par --seq1 à --seq5 dans css/app.css. Le rouge de marque n'en fait pas partie :
+  // il est réservé à la sélection et à la semaine en cours. Les deux premiers paliers ont moins de 3:1 contre le
+  // fond, d'où le contour SEQ_EDGE (au moins 3:1 en clair comme en sombre) posé autour de chaque marque.
+  const SEQ = { light: ['#E5E5E5', '#BDBDBD', '#8C8C8C', '#4D4D4D', '#1A1A1A'], dark: ['#3A3A3E', '#5C5C62', '#8E8E93', '#C7C7CC', '#F5F5F7'] };
+  const SEQ_EDGE = { light: '#8C8C8C', dark: '#8E8E93' };
+  // Palier de 0 à 4 d'un revenu par colis : 1,30 $ et moins au palier 0, 3,30 $ et plus au palier 4.
+  function seqLevel(ppp) { const t = Math.max(0, Math.min(1, ((+ppp || 0) - 1.3) / 2)); return Math.min(4, Math.floor(t * 5)); }
+  function seqColor(ppp, dark) { return SEQ[dark ? 'dark' : 'light'][seqLevel(ppp)]; }
+  // Mode sombre effectif : l'attribut data-theme l'emporte, sinon la préférence du système.
+  function isDark() {
+    const t = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : null;
+    if (t === 'dark') return true; if (t === 'light') return false;
+    try { return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); } catch (e) { return false; }
+  }
+  // Valeur d'une variable CSS de :root, pour Leaflet et le canvas qui ne comprennent pas var().
+  function cssVar(name, fallback) {
+    try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; } catch (e) { return fallback; }
+  }
+
+  window.PYU = { isoDate, isoMonth, today: () => isoDate(new Date()), addDays, weekStart, tariffKey, numOr, billed, avgInvoiced, pastWeeks, streak,
+    SEQ, SEQ_EDGE, seqLevel, seqColor, isDark, cssVar };
 })();

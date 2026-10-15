@@ -121,22 +121,25 @@
   }
 
   /* ---------- Carte (Leaflet + OpenStreetMap) ---------- */
-  const seqColor = v => { const t = Math.max(0, Math.min(1, (v - 1.3) / 2)); return ['#d9e8de', '#a7cdb6', '#6aab86', '#2f8457', '#0f6b3b'][Math.min(4, Math.floor(t * 5))]; };
+  // Rampe et contour partagés avec le monde à conduire (PYU.seqColor) ; le rouge de marque marque la sélection.
+  // Leaflet écrit ses couleurs en attributs SVG, qui n'acceptent pas var() : on passe des valeurs résolues.
+  if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (map && !$('#v-map').hidden) renderMap(); }); } catch (e) { /* vieux navigateurs */ } }
   function renderMap() {
     renderRank();
     if (!window.L) return;
     if (!map) {
       map = L.map('map', { scrollWheelZoom: true }).setView([45.88, -72.25], 9);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
-      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#0f6b3b;border:2px solid #fff;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
-      L.marker([CFG.HOME.lat, CFG.HOME.lon], { icon: L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#1c4f99;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14] }) }).addTo(map).bindPopup('<b>' + esc(CFG.HOME.name) + '</b><br>Environ 80 km de la station, 30 $ d’essence par jour aller-retour');
-      $('#legend').innerHTML = `<div><span class="sw" style="background:#d9e8de"></span>≈1,30 $/colis</div><div><span class="sw" style="background:#6aab86"></span>≈2,20 $/colis</div><div><span class="sw" style="background:#0f6b3b"></span>≈3,00 $/colis et plus</div><div><span class="sw" style="background:#0f6b3b;border-radius:2px"></span>station de départ</div>`;
+      L.marker([CFG.STATION.lat, CFG.STATION.lon], { icon: L.divIcon({ className: '', html: '<div class="map-pin station"></div>', iconSize: [16, 16] }) }).addTo(map).bindPopup('<b>' + esc(CFG.STATION.name) + '</b><br>Point de départ des routes');
+      L.marker([CFG.HOME.lat, CFG.HOME.lon], { icon: L.divIcon({ className: '', html: '<div class="map-pin home"></div>', iconSize: [14, 14] }) }).addTo(map).bindPopup('<b>' + esc(CFG.HOME.name) + '</b><br>Environ 80 km de la station, 30 $ d’essence par jour aller-retour');
+      $('#legend').innerHTML = `<div><span class="sw" style="background:var(--seq1)"></span>≈1,30 $/colis</div><div><span class="sw" style="background:var(--seq3)"></span>≈2,20 $/colis</div><div><span class="sw" style="background:var(--seq5)"></span>≈3,00 $/colis et plus</div><div><span class="sw station"></span>station de départ</div><div><span class="sw sel"></span>localité choisie</div>`;
     }
     if (layer) layer.remove();
     layer = L.layerGroup().addTo(map);
     const maxN = Math.max(1, ...S.locstats.map(l => l.n));
+    const dark = U.isDark(), edge = U.SEQ_EDGE[dark ? 'dark' : 'light'], brand = U.cssVar('--brand', dark ? '#FF3B3B' : '#C7000B');
     S.locstats.filter(l => l.lat && l.lon).sort((a, b) => b.n - a.n).forEach(l => {
-      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? '#f4c20d' : '#fff', weight: selLoc === l.code ? 3 : 1.5, fillColor: seqColor(l.ppp), fillOpacity: .85 });
+      const c = L.circleMarker([l.lat, l.lon], { radius: 6 + 20 * Math.sqrt(l.n / maxN), color: selLoc === l.code ? brand : edge, weight: selLoc === l.code ? 3 : 1.5, fillColor: U.seqColor(l.ppp, dark), fillOpacity: .9 });
       c.bindTooltip(`<b>${esc(l.name)}</b><br>${fmt(l.n)} colis sur ${l.days} jour${l.days > 1 ? 's' : ''}<br>${fmt(l.ppp, 2)} $/colis`);
       c.on('click', () => selectLoc(l.code));
       c.addTo(layer);
@@ -377,7 +380,7 @@
     try { localStorage.setItem('py-tab', v); } catch (e) {}
     if (v === 'map') renderMap();
     if (v === 'world') startWorld(); else stopWorld();
-    if (v === 'dash') animateCounters($('#v-dash'));
+    if (v === 'dash') { animateCounters($('#v-dash')); const g = $('#heatmap .hgrid'); if (g) g.scrollLeft = g.scrollWidth; } // mur ouvert sur la semaine en cours
     if (window._moreNav) window._moreNav.more.classList.toggle('on', window._moreNav.hidden.includes(v));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
