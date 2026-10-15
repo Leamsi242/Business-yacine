@@ -130,21 +130,65 @@
     return { tax, free, car: car ? (alloc[car.id] || 0) : 0, carGoal: car };
   }
 
-  /* ---- Mur des semaines (calendrier) ---- */
+  /* ---- Calendrier du mois : chaque journée lisible, cliquable, avec le total de chaque semaine ---- */
+  const WD = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  let calMonth = null, calSel = null;
+  const longDate = iso => { const d = new Date(iso + 'T12:00:00'); return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
   function renderHeatmap() {
-    const el = $('#heatmap'); if (!el) return; const { S, money } = A();
+    const el = $('#heatmap'); if (!el) return; const { S, money, fmt, share, esc } = A();
+    const today = U.today(); calMonth = calMonth || today.slice(0, 7); calSel = calSel || today;
     const by = {}; S.days.forEach(d => by[d.date] = d);
-    const end = new Date(); const start = new Date(end); start.setDate(start.getDate() - 7 * 26 + 1); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
-    const max = Math.max(1, ...S.days.map(d => d.invoiced));
-    let cols = ''; const cur = new Date(start); const months = [];
-    while (cur <= end) {
-      let col = ''; for (let i = 0; i < 7; i++) { const iso = A().isoDate(cur); const d = by[iso]; const lvl = d ? Math.min(4, Math.ceil(4 * d.invoiced / max)) : 0; col += `<i class="l${lvl}" title="${iso}${d ? ' : ' + d.parcels + ' colis, ' + money(d.invoiced, 2) : ''}"></i>`; if (cur.getDate() <= 7 && i === 0) months.push({ i: months.length, m: cur.toLocaleDateString('fr-CA', { month: 'short' }) }); cur.setDate(cur.getDate() + 1); }
-      cols += `<div class="hcol${cur > end ? ' cur' : ''}">${col}</div>`; // la dernière colonne est la semaine en cours
+    const [y, m] = calMonth.split('-').map(Number), first = calMonth + '-01';
+    const last = U.isoDate(new Date(y, m, 0)), start = U.weekStart(first), sh = share(), goalDays = Math.floor(+S.goals.days || 4);
+    const md = S.days.filter(d => d.date.startsWith(calMonth)), mb = U.billed(md), inv = mb.reduce((a, d) => a + d.invoiced, 0);
+    const maxNet = Math.max(1, ...S.days.map(d => d.invoiced * sh));
+    let rows = '';
+    for (let wk = start; wk <= last; wk = U.addDays(wk, 7)) {
+      let cells = '', wDays = 0, wNet = 0;
+      for (let i = 0; i < 7; i++) {
+        const iso = U.addDays(wk, i), d = by[iso], out = !iso.startsWith(calMonth), net = d ? d.invoiced * sh : 0;
+        if (d) { wDays++; wNet += net; }
+        const pending = d && !(d.invoiced > 0);
+        const label = longDate(iso) + (d ? ' : ' + d.parcels + ' colis, ' + (pending ? 'facturé en attente' : money(d.invoiced, 2) + ' facturés') : ', pas de journée');
+        cells += `<button type="button" role="gridcell" class="cal-d${out ? ' out' : ''}${d ? ' work' : ''}${pending ? ' pending' : ''}${iso === today ? ' today' : ''}${iso === calSel ? ' sel' : ''}${iso > today ? ' future' : ''}" data-date="${iso}" tabindex="${iso === calSel ? 0 : -1}" aria-label="${label}"${iso === calSel ? ' aria-selected="true"' : ''}>
+          <span class="n">${+iso.slice(8)}</span>${d ? `<span class="amt">${pending ? 'en attente' : money(net)}</span><span class="p">${d.parcels} colis</span><i class="m" style="width:${Math.round(100 * net / maxNet)}%"></i>` : ''}</button>`;
+      }
+      rows += `<div class="cal-row" role="row">${cells}<div class="cal-wk${wDays >= goalDays ? ' ok' : ''}" role="gridcell"><b>${wDays} j</b><span>${money(wNet)}</span></div></div>`;
     }
-    const worked = S.days.filter(d => d.date >= A().isoDate(start)).length;
-    el.innerHTML = `<div class="hgrid">${cols}</div><p class="small muted">26 dernières semaines : ${worked} journées travaillées, les cases vides sont les jours sans revenu. Plus la case est contrastée, plus la journée a rapporté ; la semaine en cours est cernée de rouge.</p>`;
-    // Sur téléphone, le mur défile : on l'ouvre sur la semaine en cours plutôt que sur la plus ancienne.
-    const g = el.querySelector('.hgrid'); if (g) (window.requestAnimationFrame || setTimeout)(() => { g.scrollLeft = g.scrollWidth; });
+    el.innerHTML = `<div class="cal-head"><div class="cal-navs"><button type="button" class="cal-nav" data-cal="-1" aria-label="Mois précédent">‹</button><h3 class="cal-title" aria-live="polite">${MONTHS[m - 1]} ${y}</h3><button type="button" class="cal-nav" data-cal="1" aria-label="Mois suivant">›</button></div><button type="button" class="btn sec cal-today" data-cal="0">Aujourd’hui</button></div>
+      <p class="cal-sum">${md.length} journée${md.length > 1 ? 's' : ''} travaillée${md.length > 1 ? 's' : ''} · <b>${money(inv * sh)} net</b> · ${money(inv)} facturés · ${fmt(md.reduce((a, d) => a + d.parcels, 0))} colis${md.length > mb.length ? ` · ${md.length - mb.length} en attente de facture` : ''}</p>
+      <div class="cal" role="grid" aria-label="Calendrier de ${MONTHS[m - 1]} ${y}, net de Yacine par journée"><div class="cal-row cal-wd" role="row">${WD.map(w => `<span role="columnheader">${w}</span>`).join('')}<span role="columnheader" class="cal-wk">Semaine</span></div>${rows}</div>
+      <p class="small muted">Montant net de Yacine par journée (après commission, avant essence). Le total de la semaine est souligné quand elle atteint ${goalDays} jours. Flèches du clavier pour se déplacer.</p>
+      <div class="cal-detail" id="calDetail" aria-live="polite"></div>`;
+    renderDayDetail();
+    // Changer de mois sélectionne le 1er (ou aujourd’hui pour le mois en cours) ; « Aujourd’hui » revient au jour même.
+    el.querySelectorAll('[data-cal]').forEach(b => b.onclick = () => { const k = +b.dataset.cal; calMonth = k ? U.isoMonth(new Date(y, m - 1 + k, 1)) : today.slice(0, 7); calSel = calMonth === today.slice(0, 7) ? today : calMonth + '-01'; renderHeatmap(); });
+    el.querySelectorAll('.cal-d').forEach(b => b.onclick = () => selectDay(b.dataset.date));
+    el.querySelector('.cal').onkeydown = e => {
+      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]; if (!step) return;
+      e.preventDefault(); selectDay(U.addDays(calSel, step), true);
+    };
+  }
+  function selectDay(iso, focus) {
+    calSel = iso; if (iso.slice(0, 7) !== calMonth) calMonth = iso.slice(0, 7);
+    renderHeatmap(); if (focus) { const b = $(`#heatmap .cal-d[data-date="${iso}"]`); if (b) b.focus(); }
+  }
+  function renderDayDetail() {
+    const el = $('#calDetail'); if (!el) return; const { S, money, fmt, share, esc } = A();
+    const d = S.days.find(x => x.date === calSel), today = U.today(), sh = share();
+    const loc = d && (d.loc ? (S.localities.find(l => l.code === d.loc) || {}).name || d.loc : d.top && d.top[0] ? d.top[0].name : '');
+    if (!d) {
+      el.innerHTML = `<h3>${longDate(calSel)}</h3><p class="muted">${calSel > today ? 'Journée à venir.' : 'Aucune journée enregistrée.'}</p>${calSel <= today ? '<button type="button" class="btn" id="calAdd">Saisir cette journée</button>' : ''}`;
+      const b = $('#calAdd'); if (b) b.onclick = () => window.PYF.openEvening(calSel);
+      return;
+    }
+    const net = d.invoiced * sh, fuel = d.fuel;
+    el.innerHTML = `<h3>${longDate(calSel)}${d.source === 'saisie' ? ' <span class="pill good">saisie</span>' : ''}</h3>
+      <div class="kv"><span>Colis</span><b>${fmt(d.parcels)}</b><span>Facturé</span><b>${d.invoiced > 0 ? money(d.invoiced, 2) : 'en attente de facture'}</b><span>Net (part de Yacine)</span><b>${d.invoiced > 0 ? money(net, 2) : 'en attente'}</b>${d.invoiced > 0 && d.parcels ? `<span>Revenu par colis</span><b>${fmt(d.invoiced / d.parcels, 2)} $</b>` : ''}<span>Km</span><b>${d.km != null ? fmt(d.km) + ' km' : 'non saisis'}</b><span>Essence</span><b>${fuel != null ? money(fuel, 2) : 'non saisie'}</b>${d.invoiced > 0 && fuel != null ? `<span>Net après essence</span><b>${money(net - fuel, 2)}</b>` : ''}${loc ? `<span>Zone principale</span><b>${esc(loc)}</b>` : ''}${d.note ? `<span>Note</span><b>${esc(d.note)}</b>` : ''}</div>
+      ${d.driver ? '<button type="button" class="btn sec" id="calEdit">Modifier dans le journal</button>' : ''}`;
+    const b = $('#calEdit'); if (b) b.onclick = () => { A().goTab('log'); const f = $('#f_date'); f.value = calSel; f.dispatchEvent(new Event('change')); const form = $('#dayForm'); if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
   }
 
   /* ---- Prévision de fin de mois ---- */

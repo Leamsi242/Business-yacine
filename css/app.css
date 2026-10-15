@@ -472,3 +472,52 @@ h1 .mark svg{width:100%;height:100%;display:block}
 .tscroll{container-type:inline-size}
 @container (max-width:440px){.hide-sm{display:none}.tscroll table.fit{min-width:0}.del .lbl{display:none}}
 .forecast-mid{font-weight:700;color:var(--ink)}
+
+/* ---------- Calendrier du mois (remplace le mur des semaines) ----------
+   Sept colonnes du lundi au dimanche plus le total de la semaine. Chaque journée travaillée montre le net, les
+   colis et une jauge proportionnelle au meilleur jour ; aujourd'hui est cerclé de rouge, la journée choisie est
+   pleine. Sur une carte étroite (téléphone), les colis et la colonne « Semaine » s'effacent. */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cal-navs{display:flex;align-items:center;gap:8px}
+.card .cal-title,.cal-title{margin:0;min-width:9.5em;text-align:center;font-size:18px;font-weight:600;text-transform:capitalize}
+.cal-nav{width:44px;height:44px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);font:400 22px/1 var(--sans);cursor:pointer;transition:background var(--t)}
+.cal-nav:hover{background:var(--surface-2)}
+.cal-sum{margin:12px 0 16px;color:var(--ink-body)}
+.cal{container-type:inline-size;display:grid;gap:6px}
+.cal-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) minmax(72px,.9fr);gap:6px}
+.cal-wd span{font-size:12px;font-weight:600;color:var(--ink-2);text-align:left;padding:0 8px}
+.cal-d{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:84px;padding:8px 8px 12px;border:0;border-radius:10px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;transition:background var(--t),box-shadow var(--t)}
+.cal-d:hover{box-shadow:inset 0 0 0 1px var(--ink-3)}
+.cal-d .n{font-size:13px;font-weight:600;color:var(--ink-2)}
+.cal-d .amt{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cal-d .p{font-size:12px;color:var(--ink-2)}
+.cal-d .m{position:absolute;left:0;bottom:0;height:4px;background:var(--ink);border-radius:0 2px 2px 0}
+.cal-d.work{background:var(--surface)}
+.cal-d.work{box-shadow:inset 0 0 0 1px var(--rule)}
+.cal-d.pending .amt{font-weight:500;color:var(--warn-text,#8F5600);font-size:13px}
+.cal-d.out{opacity:.45}
+.cal-d.future .n{color:var(--ink-3)}
+.cal-d.today{box-shadow:inset 0 0 0 2px var(--brand)}
+.cal-d.today .n{color:var(--brand)}
+.cal-d.sel{background:var(--ink);box-shadow:none}
+.cal-d.sel .n,.cal-d.sel .amt,.cal-d.sel .p{color:var(--bg)}
+.cal-d.sel .m{background:var(--brand)}
+.cal-d.sel.today{box-shadow:inset 0 0 0 2px var(--brand)}
+.cal-wk{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 8px;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.cal-wk b{color:var(--ink);font-weight:600}
+.cal-wk.ok b{text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
+.cal-wd .cal-wk{justify-content:flex-start}
+.cal-detail{margin-top:20px;padding:20px 24px;border-radius:var(--r);background:var(--surface-2)}
+.cal-detail h3{margin:0 0 10px;font-size:16px;text-transform:none}
+.cal-detail h3::first-letter{text-transform:uppercase}
+.cal-detail .btn{margin-top:14px}
+@container (max-width:560px){
+  .cal-row{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .cal-row .cal-wk{display:none}
+  .cal-d{min-height:58px;padding:6px 5px 9px;border-radius:8px}
+  .cal-d .p{display:none}
+  .cal-d .amt{font-size:11.5px;font-weight:600;letter-spacing:-.01em}
+  .cal-d.pending .amt{font-size:0}
+  .cal-d.pending .amt::after{content:"…";font-size:14px}
+  .cal-wd span{padding:0 4px;font-size:11px}
+}

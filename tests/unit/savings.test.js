@@ -92,16 +92,16 @@ describe('prévision de fin de mois et mur des semaines', () => {
       assert.match(t, /encore 10 j de travail nécessaires/); // (4300 − 1500) / 300
     } finally { c.close(); }
   });
-  test('mur des 26 dernières semaines : une case par jour, les journées travaillées sont colorées et datées', async () => {
+  test('calendrier du mois : une case par jour d’octobre, les journées travaillées montrent le net et les colis', async () => {
     const c = await boot({ now: NOW, noHistory: true, localState: localState() });
     try {
       await enter(c, 'dash');
-      const cells = [...c.$('#heatmap').querySelectorAll('.hcol i')];
-      assert.ok(cells.length >= 26 * 7);
-      const worked = cells.filter(i => !i.classList.contains('l0'));
-      assert.equal(worked.length, 32);
-      assert.ok(worked.every(i => /^\d{4}-\d{2}-\d{2} : 180 colis, 400,00 \$$/.test(i.title.replace(/ /g, ' '))));
-      assert.ok(worked.find(i => i.title.startsWith('2026-10-08')), 'la dernière journée est à la bonne date locale');
+      const inMonth = [...c.$('#heatmap').querySelectorAll('.cal-d:not(.out)')];
+      assert.equal(inMonth.length, 31);
+      const worked = inMonth.filter(b => b.classList.contains('work'));
+      assert.equal(worked.length, 5, '1er, 5, 6, 7 et 8 octobre');
+      assert.ok(worked.every(b => /300 \$/.test(b.querySelector('.amt').textContent.replace(/[\u00a0\u202f]/g, ' ')) && /180 colis/.test(b.textContent)));
+      assert.ok(c.$('#heatmap .cal-d[data-date="2026-10-08"]').classList.contains('work'), 'la dernière journée est à la bonne date locale');
     } finally { c.close(); }
   });
 });

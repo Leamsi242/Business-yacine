@@ -380,7 +380,7 @@
     try { localStorage.setItem('py-tab', v); } catch (e) {}
     if (v === 'map') renderMap();
     if (v === 'world') startWorld(); else stopWorld();
-    if (v === 'dash') { animateCounters($('#v-dash')); const g = $('#heatmap .hgrid'); if (g) g.scrollLeft = g.scrollWidth; } // mur ouvert sur la semaine en cours
+    if (v === 'dash') animateCounters($('#v-dash'));
     if (window._moreNav) window._moreNav.more.classList.toggle('on', window._moreNav.hidden.includes(v));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

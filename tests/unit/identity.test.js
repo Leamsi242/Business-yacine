@@ -62,14 +62,12 @@ describe('rampe séquentielle partagée', () => {
     } finally { c.close(); }
   });
 
-  test('mur des semaines : seule la dernière colonne, la semaine en cours, est marquée', async () => {
+  test('calendrier : seul aujourd’hui est cerclé, et c’est le 15 octobre', async () => {
     const c = await boot({ now: NOW, noHistory: true, localState: localState() });
     try {
       await enter(c, 'dash');
-      const cols = [...c.$('#heatmap').querySelectorAll('.hcol')];
-      assert.equal(cols.filter(x => x.classList.contains('cur')).length, 1);
-      assert.ok(cols[cols.length - 1].classList.contains('cur'));
-      assert.ok([...cols[cols.length - 1].querySelectorAll('i')].some(i => i.title.startsWith('2026-10-15')));
+      const t = [...c.$('#heatmap').querySelectorAll('.cal-d.today')];
+      assert.equal(t.length, 1); assert.equal(t[0].dataset.date, '2026-10-15');
     } finally { c.close(); }
   });
 
