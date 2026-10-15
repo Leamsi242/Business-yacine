@@ -461,3 +461,14 @@ h1 .mark svg{width:100%;height:100%;display:block}
 .legend .sw.sel{background:transparent;box-shadow:inset 0 0 0 2px var(--brand,#C7000B)}
 .map-pin{width:16px;height:16px;background:var(--map-station);border:2px solid var(--map-ring);border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .map-pin.home{width:14px;height:14px;background:var(--map-home);transform:rotate(45deg);border-radius:1px}
+
+/* ---------- Ajustements après fusion ----------
+   Chiffres clés : la taille suit la largeur de la tuile (unités cqi), jamais de montant tronqué par des points
+   de suspension. Tableaux dans une carte étroite (trois cartes côte à côte sur ordinateur) : les colonnes
+   secondaires cèdent la place selon la largeur de la carte, pas seulement celle de l'écran. */
+.tiles .tile{container-type:inline-size;min-width:0}
+.tiles .tile .val{overflow:visible;text-overflow:clip;font-size:clamp(22px,21cqi,40px)}
+.tiles .tile:first-child .val{font-size:clamp(28px,17cqi,56px)}
+.tscroll{container-type:inline-size}
+@container (max-width:440px){.hide-sm{display:none}.tscroll table.fit{min-width:0}.del .lbl{display:none}}
+.forecast-mid{font-weight:700;color:var(--ink)}

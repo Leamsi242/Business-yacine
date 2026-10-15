@@ -157,7 +157,7 @@
     const avgDay = U.avgInvoiced(S.days, 367) * share();
     const expDays = left / 7 * dpw; const low = done + expDays * avgDay * 0.8, mid = done + expDays * avgDay, high = done + (left / 7 * Math.min(6, dpw + 1)) * avgDay * 1.1;
     const target = num(S.goals.net); const needDays = target > mid && avgDay ? Math.ceil((target - done) / avgDay) : 0;
-    el.innerHTML = `<div class="kv"><span>Déjà net ce mois</span><b>${money(done)} (${md.length} j)</b><span>Jours restants</span><b>${left}</b><span>Prévision basse / centrale / haute</span><b>${money(low)} / <span style="color:var(--sign-text)">${money(mid)}</span> / ${money(high)}</b><span>Objectif</span><b>${money(target)} <span class="pill ${mid >= target ? 'good' : 'warn'}">${mid >= target ? 'en bonne voie' : 'encore ' + needDays + ' j de travail nécessaires'}</span></b></div>
+    el.innerHTML = `<div class="kv"><span>Déjà net ce mois</span><b>${money(done)} (${md.length} j)</b><span>Jours restants</span><b>${left}</b><span>Prévision basse / centrale / haute</span><b>${money(low)} / <span class="forecast-mid">${money(mid)}</span> / ${money(high)}</b><span>Objectif</span><b>${money(target)} <span class="pill ${mid >= target ? 'good' : 'warn'}">${mid >= target ? 'en bonne voie' : 'encore ' + needDays + ' j de travail nécessaires'}</span></b></div>
       <p class="small muted" style="margin-top:6px">Centrale = rythme des 8 dernières semaines (${fmt(dpw, 1)} j/sem à ${money(avgDay)} net/j). Haute = un jour de plus par semaine et des routes mieux payées.</p>`;
   }
 
