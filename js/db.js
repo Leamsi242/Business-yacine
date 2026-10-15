@@ -93,6 +93,13 @@
       if (!online) return local().parcels.filter(p => !date || p.date >= date);
       return readAll(() => { let q = client.from('parcels').select('*'); if (date) q = q.gte('date', date); return q.order('date').order('tracking'); });
     },
+    // Données de référence (historique des factures, stats par localité, grille tarifaire) : table `reference`
+    // protégée par le PIN ; en mode local, ce qu'une sauvegarde restaurée a apporté (rien par défaut).
+    async getReference() {
+      if (!online) return local().reference || {};
+      const rows = fail(await client.from('reference').select('key,data'));
+      return rows.reduce((o, r) => (o[r.key] = r.data, o), {});
+    },
     async getInvoices() {
       if (!online) return local().invoices;
       return fail(await client.from('invoices').select('*').order('week'));

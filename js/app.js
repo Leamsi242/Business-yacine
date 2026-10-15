@@ -1,6 +1,7 @@
-// Pilote Yacine : application. Données via window.PYDB, historique via window.PY_HISTORY.
+// Pilote Yacine : application. Données via window.PYDB ; l'historique des factures, les statistiques par localité
+// et la grille tarifaire viennent de la table `reference` (derrière le PIN), jamais du dépôt public.
 (function () {
-  const CFG = window.PY_CONFIG, DB = window.PYDB, H = window.PY_HISTORY;
+  const CFG = window.PY_CONFIG, DB = window.PYDB;
   const $ = s => document.querySelector(s);
   const fmt = (n, d = 0) => (Math.round(n * Math.pow(10, d)) / Math.pow(10, d)).toLocaleString('fr-CA', { minimumFractionDigits: d, maximumFractionDigits: d });
   const money = (n, d = 0) => fmt(n, d) + ' $';
@@ -15,12 +16,16 @@
 
   // État chargé depuis la base
   let S = { days: [], goals: {}, localities: [], parcels: [], locstats: [], invoices: [] };
+  let REF = { history: { days: [] }, locstats: [], tariffs: {} };
   let LOCBY = {}; let map = null, layer = null, selLoc = null, rankBy = 'ppp';
   const U = window.PYU;
   const share = () => S.goals.status === 'indep' ? 0.95 : 1 - U.numOr(S.goals.cut, 0.25);
 
   async function load() {
-    const [days, goals, localities, parcels, invoices] = await Promise.all([DB.getDays(), DB.getGoals(), DB.getLocalities(), DB.getParcelsSince(null), DB.getInvoices().catch(() => [])]);
+    const [days, goals, localities, parcels, invoices, ref] = await Promise.all([DB.getDays(), DB.getGoals(), DB.getLocalities(), DB.getParcelsSince(null), DB.getInvoices().catch(() => []), DB.getReference().catch(() => ({}))]);
+    REF = { history: ref.history || { days: [] }, locstats: ref.locstats || [], tariffs: ref.tariffs || {} };
+    window.PY_TARIFFS = REF.tariffs; const H = REF.history;
+    const histEnd = H.days.reduce((m, d) => d.date > m ? d.date : m, '');
     S.invoices = invoices || [];
     S.goals = Object.assign({ days: 4.5, net: 4300, van: 8000, saved: 0, status: 'broker', fuel: 60, cut: 0.25 }, goals || {});
     S.localities = localities; LOCBY = {}; localities.forEach(l => LOCBY[l.code] = l);
@@ -30,10 +35,10 @@
     days.forEach(d => m[d.date] = Object.assign({}, m[d.date] || {}, d, { invoiced: +d.invoiced, parcels: +d.parcels, km: d.km == null ? null : +d.km, fuel: d.fuel == null ? null : +d.fuel }));
     S.days = Object.values(m).sort((a, b) => a.date < b.date ? -1 : 1);
     S.parcels = parcels;
-    // stats par localité : historique + colis importés postérieurs au 27 sept. 2026 (fin des factures embarquées)
-    const ls = {}; (window.PY_LOCSTATS || []).forEach(l => ls[l.code] = Object.assign({}, l, { zones: Object.assign({}, l.zones), dayset: null }));
+    // stats par localité : historique + colis importés après la dernière journée de l'historique
+    const ls = {}; REF.locstats.forEach(l => ls[l.code] = Object.assign({}, l, { zones: Object.assign({}, l.zones), dayset: null }));
     const extra = {};
-    parcels.filter(p => p.date > '2026-09-27').forEach(p => {
+    parcels.filter(p => p.date > histEnd).forEach(p => {
       const k = p.pc && p.pc[1] === '0' ? p.pc : (p.pc || '').slice(0, 3);
       const key = { G6P: 'G6', G6R: 'G6', G6S: 'G6', G6T: 'G6', J2B: 'J2', J2C: 'J2' }[k] || k;
       const e = extra[key] = extra[key] || { n: 0, rev: 0, days: new Set(), zones: {}, wt: 0 };
@@ -392,11 +397,11 @@
   // L'épargne se charge avant le rendu : objectifs, compte à rebours et projets lisent le même projet « van ».
   async function refresh() {
     await load(); if (window.PYS) { try { await window.PYS.load(); } catch (e) { console.warn(e); } }
-    fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap();
+    fillLocSelect(); fillGoals(); fillSign(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap();
     if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); }
     if (window.PYS) { try { window.PYS.render(); } catch (e) { console.warn(e); } }
   }
-  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, recentWeeks, avgInvoiced, streak, vanDown, weekStart, isoDate: d => window.PYU.isoDate(d), getMap: () => map };
+  window.PYAPP = { get S() { return S; }, get ref() { return REF; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, recentWeeks, avgInvoiced, streak, vanDown, weekStart, isoDate: d => window.PYU.isoDate(d), getMap: () => map };
   $('#btnBrief').onclick = () => window.PYF.openBrief(true);
   $('#btnEvening').onclick = () => window.PYF.openEvening();
   $('#evClose').onclick = () => window.PYF.closeEvening();
@@ -416,7 +421,7 @@
     if (seen) window.PYF.openBrief(false);
   }
   function enterApp(tab) { try { sessionStorage.setItem('py-landing', '1'); } catch (e) {} $('#landing').hidden = true; $('#app').hidden = false; goTab(tab); window.PYF.openBrief(false); }
-  (function fillSign() { const el = $('#signDest'); if (!el) return; const top = (window.PY_LOCSTATS || []).filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 5); el.innerHTML = top.map(l => `<li><span>${esc(l.name)}</span><b>${fmt(l.ppp, 2)} $</b></li>`).join(''); })();
+  function fillSign() { const el = $('#signDest'); if (!el) return; const top = S.locstats.filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 5); el.innerHTML = top.map(l => `<li><span>${esc(l.name)}</span><b>${fmt(l.ppp, 2)} $</b></li>`).join(''); }
   $('#btnDrive').onclick = () => enterApp('world');
   $('#btnExplore').onclick = () => enterApp('dash');
   window.addEventListener('keydown', e => { if (e.key === 'Enter' && !$('#landing').hidden) enterApp('world'); });

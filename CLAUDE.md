@@ -12,7 +12,7 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 ## Pile technique
 
 - Page unique `index.html`, JavaScript vanille sans bundler, scripts chargés dans l'ordre : config, util, data, db,
-  pdf-import, tariffs, world, features, savings, app. Chaque script expose un objet global (`PYU`, `PYDB`, `PYPDF`,
+  pdf-import, world, features, savings, app. Chaque script expose un objet global (`PYU`, `PYDB`, `PYPDF`,
   `PY_TARIFFS`, `PY_WORLD`, `PYF`, `PYS`, `PYAPP`).
 - Données : Supabase (projet `uawvvuzwkfpdzlgxlpdg`) avec sécurité par PIN (RLS, fonction `check_pin()` qui lit
   l'en-tête `x-pin`). La clé anonyme dans `js/config.js` est publique par conception ; ne jamais mettre la clé
@@ -32,7 +32,7 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
   `toISOString().slice(0, 10)` (à 21 h au Québec, UTC est déjà le lendemain). Les horodatages (`started_at`,
   `audit.at`) restent en ISO complet.
 - Montants affichés via `PYAPP.fmt` / `PYAPP.money` (fr-CA, espace insécable de milliers, `$` détaché).
-- Clé de la grille tarifaire : `PYU.tariffKey(zone, poids)` donne `ZONE_G|2.0` (une décimale), comme `js/tariffs.js`.
+- Clé de la grille tarifaire : `PYU.tariffKey(zone, poids)` donne `ZONE_G|2.0` (une décimale), comme la grille de la table `reference`.
 - Part de Yacine : `PYAPP.share()` (0,75 chez le broker avec `cut` 0,25 ; 0,95 en indépendant).
 - Semaines du lundi au dimanche comme les factures Intelcom (`PYU.weekStart`). `byWeek` montre les semaines sans
   travail ; les moyennes utilisent les semaines complètes (`PYAPP.recentWeeks`).
@@ -41,7 +41,10 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 - Van : une seule épargne, le projet « van » de l'épargne ; `goals.van` est la mise de fonds exigée par le plan.
   Dates d'atteinte par `PYS.project` (projection semaine par semaine) et `PYS.vanPlan`.
 - Aucune donnée réelle de Yacine dans le dépôt (public) : les factures de test viennent de
-  `tests/helpers/invoice.js`. `js/data.js` ne contient que des agrégats par journée et par localité.
+  `tests/helpers/invoice.js`. `js/data.js` ne contient que les localités (noms et coordonnées). L'historique des
+  factures, le revenu par localité et la grille tarifaire sont dans Supabase, table `reference` (migration 5), lus
+  par `PYDB.getReference()` ; leur contenu se charge avec `reference_data.sql`, fichier privé jamais versionné
+  (ignoré par git). Tests et mode local utilisent les données synthétiques de `tests/helpers/reference.js`.
 - Style d'écriture (interface, documents, messages de commit) : français du Québec, guillemets « », apostrophes
   typographiques, jamais de tiret cadratin ni demi-cadratin comme ponctuation (virgule, deux-points ou parenthèses à
   la place), pas de flèches dans la prose.
@@ -74,8 +77,9 @@ un test sont dans `TESTING.md`. Toute correction de bug s'accompagne d'un test q
 - Ajouter le secret GitHub `PY_TEST_PIN` pour que la CI vérifie la connexion avec le bon PIN.
 - Coller la migration 4 (fin de `supabase/schema.sql`) dans Supabase > SQL Editor, puis passer à un PIN long :
   `update config set pin = 'phrase de passe' where id = 1;` (10 caractères au moins).
-- Décider du sort des données réelles encore dans le dépôt public (`js/data.js` : revenus jour par jour,
-  `js/tariffs.js` : grille Intelcom) : dépôt privé, ou déplacement dans Supabase derrière le PIN.
+- Coller la migration 5 (fin de `supabase/schema.sql`) puis `reference_data.sql` (fichier privé) dans Supabase.
+- Les anciennes données réelles restent dans l'historique git du dépôt public (commits antérieurs à leur retrait) :
+  réécrire l'historique si on veut les effacer complètement.
 - Fonctionnalités proposées non retenues pour l'instant : rappel du soir, rapport du dimanche par courriel, veille
   Kijiji pour la voiture, jauge de colis en cours de shift, mode hors ligne, badges de série, comparateur de coût
   d'usage d'une voiture, export comptable annuel, espace multi-chauffeurs (phase 2 du plan).

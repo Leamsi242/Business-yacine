@@ -58,9 +58,33 @@ describe('conseils', () => {
     try {
       await enter(c, 'tips');
       const t = c.$('#advice').textContent.replace(/[  ]/g, ' ');
-      assert.doesNotMatch(t, /422,97|71 %|1 500 \$|5 300 \$|88 colis/);
+      assert.doesNotMatch(t, /Visa|utilisés/);
       assert.match(t, /La navette Sherbrooke à Station DRUM coûte environ 31 \$ par jour/);
-      assert.doesNotMatch(c.$('#brief').textContent + read('js/features.js'), /422,97/);
+      assert.doesNotMatch(read('js/features.js'), /colis perdu = \d/);
     } finally { c.close(); }
+  });
+});
+
+describe('données réelles hors du dépôt public', () => {
+  test('ni historique de factures, ni stats par localité, ni grille tarifaire dans js/', () => {
+    assert.equal(fs.existsSync(path.join(ROOT, 'js', 'tariffs.js')), false);
+    const data = read('js/data.js');
+    assert.doesNotMatch(data, /PY_HISTORY|PY_LOCSTATS|PY_TARIFFS|invoiced|"rev"/);
+    assert.match(data, /window\.PY_LOCALITIES = \[/);
+    assert.doesNotMatch(read('index.html'), /tariffs\.js/);
+    assert.match(read('.gitignore'), /^reference_data\.sql$/m);
+  });
+  test('la référence vient de la base : sans elle, rien d’inventé et l’audit dit que la grille manque', async () => {
+    const c = await boot({ now: '2026-10-15T09:00:00-04:00', localState: { days: [], parcels: [], invoices: [], goals: {}, localities: [], reference: {} } });
+    try {
+      assert.equal(c.w.PYAPP.S.days.length, 0); assert.equal(c.w.PYAPP.S.locstats.length, 0); assert.equal(c.$('#signDest').children.length, 0);
+      const inv = require('../helpers/invoice'); const f = inv.typicalWeek();
+      const a = c.w.PYF.auditInvoice(f.expected, f.expected.parcels, f.expected.days, [], {});
+      assert.ok(a.issues.some(i => /Grille tarifaire de référence absente/.test(i.t)));
+    } finally { c.close(); }
+  });
+  test('avec la référence de la base, le panneau d’accueil et les stats se remplissent', async () => {
+    const c = await boot({ now: '2026-10-15T09:00:00-04:00' });
+    try { assert.equal(c.$('#signDest').children.length, 5); assert.ok(c.w.PYAPP.S.locstats.length > 20); assert.ok(Object.keys(c.w.PY_TARIFFS).length > 100); } finally { c.close(); }
   });
 });

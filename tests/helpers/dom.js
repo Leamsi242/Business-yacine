@@ -8,6 +8,7 @@ const path = require('node:path');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ROOT = path.resolve(__dirname, '..', '..');
+const REFERENCE = require('./reference');
 const SCRIPTS = ['config', 'util', 'data', 'db', 'pdf-import', 'tariffs', 'world', 'features', 'savings', 'app'];
 
 const LOCAL_CONFIG = `window.PY_CONFIG = { SUPABASE_URL: "", SUPABASE_ANON_KEY: "", DEFAULT_DRIVER: "yacine",
@@ -57,7 +58,7 @@ function fakeGeo(w) {
  *  localState   : état initial du stockage local (clé pilote-yacine-v2)
  *  session      : entrées de sessionStorage (ex. { 'py-landing': '1' })
  *  storage      : autres entrées de localStorage (ex. { 'py-shift': '...' })
- *  noHistory    : vide l'historique embarqué (PY_HISTORY, PY_LOCSTATS) pour des calculs déterministes
+ *  noHistory    : sans historique ni stats par localité (la grille tarifaire reste) pour des calculs déterministes
  *  config       : texte de js/config.js à utiliser à la place du mode local
  */
 async function boot(opts = {}) {
@@ -66,7 +67,13 @@ async function boot(opts = {}) {
   const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc });
   const w = dom.window; const d = w.document;
   if (opts.now) freezeDate(w, opts.now);
-  if (opts.localState) w.localStorage.setItem('pilote-yacine-v2', JSON.stringify(opts.localState));
+  // Données de référence synthétiques (tests/helpers/reference.js) : en mode local, l'application les lit dans le
+  // stockage comme une sauvegarde restaurée.
+  let state = opts.localState ? JSON.parse(JSON.stringify(opts.localState)) : null;
+  // noHistory garde la grille tarifaire (pour l'audit) mais retire l'historique et les stats par localité.
+  state = state || { days: [], parcels: [], invoices: [], goals: {}, localities: [] };
+  if (!state.reference) state.reference = opts.noHistory ? { tariffs: REFERENCE.tariffs } : REFERENCE;
+  w.localStorage.setItem('pilote-yacine-v2', JSON.stringify(state));
   if (opts.session) Object.entries(opts.session).forEach(([k, v]) => w.sessionStorage.setItem(k, v));
   if (opts.storage) Object.entries(opts.storage).forEach(([k, v]) => w.localStorage.setItem(k, v));
   w.HTMLCanvasElement.prototype.getContext = () => anyStub();
@@ -82,7 +89,6 @@ async function boot(opts = {}) {
     const file = path.join(ROOT, 'js', n + '.js'); if (!fs.existsSync(file)) continue;
     const src = n === 'config' ? (opts.config || LOCAL_CONFIG) : fs.readFileSync(file, 'utf8');
     try { w.eval(src + '\n//# sourceURL=js/' + n + '.js'); } catch (e) { e.message = n + '.js : ' + e.message; throw e; }
-    if (n === 'data' && opts.noHistory) { w.PY_HISTORY.days = []; w.PY_LOCSTATS = []; }
   }
   await w.PYAPP.refresh();
   const $ = s => d.querySelector(s);

@@ -101,7 +101,7 @@ describe('une journée de Yacine', () => {
     c.w.PYAPP.goTab('log');
     const fx = inv.typicalWeek();
     const status = (await dropPdf(c, 'facture-41.pdf', fx.lines)).replace(/\u00a0/g, ' ');
-    assert.match(status, /Importé facture-41\.pdf : semaine 2026-41, 4 journées, 708 colis, total facture 1 320,66 \$/);
+    assert.match(status, /Importé facture-41\.pdf : semaine 2026-41, 4 journées, 708 colis, total facture 1 403,15 \$/);
     assert.match(c.$('#audits').textContent, /Semaine 2026-41Conforme/);
     assert.equal(c.w.PYAPP.S.invoices.length, 1);
     assert.ok(c.w.PYAPP.S.days.find(d => d.date === '2026-10-06' && d.source === 'facture' && d.parcels === 170));

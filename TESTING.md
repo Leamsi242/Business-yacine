@@ -21,7 +21,7 @@ montant réels.
 | Navigation et cibles tactiles sur téléphone | `css/app.css`, `index.html` | inutilisable en tournée |
 
 Hors périmètre volontaire : le rendu du monde en canvas (`js/world.js`), les tuiles de carte Leaflet, les
-bibliothèques tierces, les fichiers de données (`data.js`, `tariffs.js`).
+bibliothèques tierces, les données de référence (synthétiques dans `tests/helpers/reference.js`, réelles dans Supabase).
 
 ## Pyramide
 
@@ -79,7 +79,7 @@ attaché ; shifts ; quatre projets d'épargne par défaut, voiture en priorité 
 budget ; export et restauration, format inconnu refusé.
 
 Cœur (`core.test.js`, 14 cas) : part 75 % / 70 % / 95 % ; lundi de la semaine y compris au changement
-d'année ; regroupement par semaine ; formats fr-CA ; échappement HTML ; fusion historique embarqué + base ; colis
+d'année ; regroupement par semaine ; formats fr-CA ; échappement HTML ; fusion historique de référence + base ; colis
 importés après le 27 septembre enrichissant les statistiques (G6P rangé sous Victoriaville) ; score de route
 (codes ruraux éloignés « Accepter », urbain J2C, codes inconnus listés, champ vide) ; formulaire du journal.
 

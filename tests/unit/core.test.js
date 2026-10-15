@@ -45,11 +45,11 @@ describe('helpers de app.js', () => {
 });
 
 describe('chargement et fusion des données', () => {
-  test('historique embarqué : 31 journées d’avril à septembre, triées, source facture', async () => {
+  test('historique de référence : 31 journées d’avril à septembre, triées, source facture', async () => {
     const c = await boot();
     try {
       const d = c.w.PYAPP.S.days;
-      assert.equal(d.length, c.w.PY_HISTORY.days.length);
+      assert.equal(d.length, c.w.PYAPP.ref.history.days.length);
       assert.ok(d.every((x, i) => !i || x.date > d[i - 1].date));
       assert.ok(d.every(x => x.source === 'facture' && x.parcels > 0 && x.invoiced > 0));
       assert.equal(c.w.PYAPP.S.goals.days, 4.5); assert.equal(c.w.PYAPP.S.goals.net, 4300);
@@ -71,7 +71,7 @@ describe('chargement et fusion des données', () => {
     const c = await boot({ localState: { days: [], parcels, invoices: [], goals: {}, localities: [] } });
     try {
       const ls = c.w.PYAPP.S.locstats;
-      const before = c.w.PY_LOCSTATS.find(l => l.code === 'J0A1M0');
+      const before = c.w.PYAPP.ref.locstats.find(l => l.code === 'J0A1M0');
       const after = ls.find(l => l.code === 'J0A1M0');
       assert.equal(after.n, (before ? before.n : 0) + 50);
       assert.ok(Math.abs(after.ppp - after.rev / after.n) < 1e-9);
@@ -82,7 +82,7 @@ describe('chargement et fusion des données', () => {
     const parcels = [{ tracking: 'X1', date: '2026-09-20', driver: 'yacine', pc: 'J0A1M0', zone: 'ZONE_M', wt: 2, amt: 1.97 }];
     const c = await boot({ localState: { days: [], parcels, invoices: [], goals: {}, localities: [] } });
     try {
-      const before = c.w.PY_LOCSTATS.find(l => l.code === 'J0A1M0'); const after = c.w.PYAPP.S.locstats.find(l => l.code === 'J0A1M0');
+      const before = c.w.PYAPP.ref.locstats.find(l => l.code === 'J0A1M0'); const after = c.w.PYAPP.S.locstats.find(l => l.code === 'J0A1M0');
       assert.equal(after.n, before.n);
     } finally { c.close(); }
   });
@@ -101,7 +101,7 @@ describe('score de route et saisie manuelle (avec l’historique)', () => {
     assert.match(t, /Accepter sans hésiter/);
     assert.match(t, /sur 4 zones connues \(Ham-Nord, Chesterville, Norbertville, Notre-Dame-de-Ham\)/);
     assert.ok(!/Codes inconnus/.test(t));
-    const ppp = (2.94 + 2.91 + 2.64 + 3.64) / 4;
+    const ppp = (3.00 + 2.90 + 2.70 + 3.50) / 4; // valeurs synthétiques de tests/helpers/reference.js
     assert.match(t, new RegExp(ppp.toFixed(2).replace('.', ',') + ' \\$/colis en moyenne'));
   });
   test('route urbaine (J2C) : verdict défavorable, km urbains', () => {

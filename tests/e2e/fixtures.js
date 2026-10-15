@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const LOCAL_CONFIG = 'window.PY_CONFIG = { SUPABASE_URL: "", SUPABASE_ANON_KEY: "", DEFAULT_DRIVER: "yacine", STATION: { name: "Station DRUM", lat: 45.885, lon: -72.49 }, HOME: { name: "Sherbrooke", lat: 45.40, lon: -71.89 }, FUEL_PRICE: 1.90 };';
 const OFFLINE = process.env.PY_OFFLINE === '1';
+const REFERENCE = require('../helpers/reference');
 const PDFJS = process.env.PY_PDFJS_DIR || '';
 
 const test = base.test.extend({
@@ -17,7 +18,11 @@ const test = base.test.extend({
     await use(errors);
   },
   page: async ({ page, localMode }, use) => {
-    if (localMode) await page.route('**/js/config.js', r => r.fulfill({ contentType: 'text/javascript', body: LOCAL_CONFIG }));
+    if (localMode) {
+      await page.route('**/js/config.js', r => r.fulfill({ contentType: 'text/javascript', body: LOCAL_CONFIG }));
+      // Données de référence synthétiques, lues par le mode local comme une sauvegarde restaurée.
+      await page.addInitScript(ref => { try { const k = 'pilote-yacine-v2'; const s = JSON.parse(localStorage.getItem(k) || 'null') || { days: [], parcels: [], invoices: [], goals: {}, localities: [] }; if (!s.reference) { s.reference = ref; localStorage.setItem(k, JSON.stringify(s)); } } catch (e) {} }, REFERENCE);
+    }
     if (OFFLINE) {
       await page.route(/fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com|cdn\.jsdelivr\.net|leaflet|supabase/, r => r.abort());
       await page.route(/pdfjs-dist@3\.11\.174\/build\/pdf\.min\.js/, r => PDFJS ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(PDFJS, 'build', 'pdf.min.js')) }) : r.abort());

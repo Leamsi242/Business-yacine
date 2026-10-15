@@ -42,7 +42,7 @@ SQL Editor > coller `supabase/migration_3_savings.sql` > Run. Crée `savings_goa
 index.html              page unique
 css/app.css             styles (thème clair et sombre)
 js/config.js            URL et clé Supabase, station, domicile, prix de l'essence
-js/data.js              historique avril à septembre 2026 (9 factures) et localités
+js/data.js              localités (noms et coordonnées) ; les chiffres réels sont dans Supabase, table reference
 js/db.js                accès aux données (Supabase ou local)
 js/pdf-import.js        lecture des factures PDF Intelcom
 js/app.js               application

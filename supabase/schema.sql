@@ -183,3 +183,16 @@ on conflict (id) do nothing;
 --   update config set pin = 'ta phrase de passe' where id = 1;
 alter table config drop constraint if exists config_pin_long;
 alter table config add constraint config_pin_long check (length(pin) >= 10) not valid;
+
+-- Migration 5 : données de référence derrière le PIN. À coller dans Supabase > SQL Editor > Run (une seule fois).
+-- Historique des factures (key 'history'), statistiques par localité ('locstats') et grille tarifaire ('tariffs')
+-- ne sont plus dans le dépôt public. Leur contenu se charge avec le fichier reference_data.sql, fourni à part
+-- et jamais versionné.
+create table if not exists reference (
+  key text primary key,                  -- 'history', 'locstats' ou 'tariffs'
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table reference enable row level security;
+drop policy if exists pin_reference on reference;
+create policy pin_reference on reference for all using (check_pin()) with check (check_pin());

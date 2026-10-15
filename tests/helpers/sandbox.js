@@ -24,6 +24,8 @@ function load(names, opts = {}) {
   const ctx = vm.createContext({ window, document, localStorage, sessionStorage, navigator, setInterval: () => 0, clearInterval() {}, setTimeout, clearTimeout, console });
   window.window = window;
   for (const n of names) {
+    // La grille tarifaire n'est plus dans le dépôt : les tests utilisent la grille synthétique.
+    if (n === 'tariffs') { window.PY_TARIFFS = require('./reference').tariffs; continue; }
     const src = fs.readFileSync(path.join(ROOT, 'js', n + '.js'), 'utf8');
     vm.runInContext(src, ctx, { filename: 'js/' + n + '.js' });
   }

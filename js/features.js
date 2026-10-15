@@ -1,7 +1,7 @@
 // Fonctions de pilotage : brief du matin, shift GPS, saisie du soir, audit de facture, score de route,
 // mission de la semaine, compte à rebours van, géolocalisation. S'appuie sur window.PYAPP exposé par app.js.
 (function () {
-  const A = () => window.PYAPP, DB = window.PYDB, CFG = window.PY_CONFIG, T = window.PY_TARIFFS || {};
+  const A = () => window.PYAPP, DB = window.PYDB, CFG = window.PY_CONFIG, T = () => window.PY_TARIFFS || {};
   const $ = s => document.querySelector(s);
   const todayISO = () => window.PYU.today();
   const DAYS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -145,9 +145,10 @@
     if (Math.abs(expTotal - inv.total) > 0.05) issues.push({ sev: 'bad', t: `Total facture ${inv.total.toFixed(2)} $ au lieu de ${expTotal.toFixed(2)} $ (base + carburant − admin − annulations)` }); else ok.push('Total facture cohérent');
     if (inv.cancel > 0) issues.push({ sev: 'warn', t: `Annulations déduites : ${inv.cancel.toFixed(2)} $ (vérifier la dernière page de la facture)` });
     // tarifs vs référence
-    const changed = {}; let nChanged = 0;
-    parcels.forEach(p => { const k = window.PYU.tariffKey(p.zone, p.wt); const ref = T[k]; if (ref != null && Math.abs(ref - p.amt) > 0.005) { nChanged++; changed[k] = changed[k] || { ref, now: p.amt, n: 0 }; changed[k].n++; } });
-    if (nChanged) { const ex = Object.entries(changed).sort((a, b) => b[1].n - a[1].n).slice(0, 4).map(([k, v]) => `${k.replace('|', ' ')} lb : de ${v.ref.toFixed(2)} à ${v.now.toFixed(2)} $ (${v.n})`).join(' ; '); const up = Object.values(changed).filter(v => v.now > v.ref).length, down = Object.values(changed).filter(v => v.now < v.ref).length; issues.push({ sev: down > up ? 'bad' : 'warn', t: `Grille tarifaire différente de la référence sur ${nChanged} colis (${up} hausses, ${down} baisses de tarif). Exemples : ${ex}` }); } else ok.push('Tarifs conformes à la grille de référence');
+    const changed = {}; let nChanged = 0; const grid = T();
+    if (!Object.keys(grid).length) issues.push({ sev: 'warn', t: 'Grille tarifaire de référence absente : tarifs non vérifiés' });
+    parcels.forEach(p => { const k = window.PYU.tariffKey(p.zone, p.wt); const ref = grid[k]; if (ref != null && Math.abs(ref - p.amt) > 0.005) { nChanged++; changed[k] = changed[k] || { ref, now: p.amt, n: 0 }; changed[k].n++; } });
+    if (nChanged) { const ex = Object.entries(changed).sort((a, b) => b[1].n - a[1].n).slice(0, 4).map(([k, v]) => `${k.replace('|', ' ')} lb : de ${v.ref.toFixed(2)} à ${v.now.toFixed(2)} $ (${v.n})`).join(' ; '); const up = Object.values(changed).filter(v => v.now > v.ref).length, down = Object.values(changed).filter(v => v.now < v.ref).length; issues.push({ sev: down > up ? 'bad' : 'warn', t: `Grille tarifaire différente de la référence sur ${nChanged} colis (${up} hausses, ${down} baisses de tarif). Exemples : ${ex}` }); } else if (Object.keys(grid).length) ok.push('Tarifs conformes à la grille de référence');
     // journées
     const invDates = new Set(days.map(d => d.date));
     (journalDays || []).filter(d => d.date >= inv.from_date && d.date <= inv.to_date && d.source === 'saisie' && d.parcels >= 20).forEach(d => { if (!invDates.has(d.date)) issues.push({ sev: 'bad', t: `Journée saisie le ${d.date} (${d.parcels} colis) absente de la facture` }); });

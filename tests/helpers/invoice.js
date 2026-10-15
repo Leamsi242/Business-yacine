@@ -5,13 +5,8 @@
 const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..', '..');
 
-function loadTariffs() {
-  const g = { window: {} };
-  const src = require('node:fs').readFileSync(path.join(ROOT, 'js', 'tariffs.js'), 'utf8');
-  new Function('window', src)(g.window);
-  return g.window.PY_TARIFFS;
-}
-const TARIFFS = loadTariffs();
+// Grille synthétique (tests/helpers/reference.js) : la vraie grille Intelcom est dans Supabase, pas dans le dépôt.
+const TARIFFS = require('./reference').tariffs;
 
 const round2 = n => Math.round(n * 100) / 100;
 const usd = (n, comma) => { const s = n.toFixed(2); return '$' + (comma ? s.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : s); };
