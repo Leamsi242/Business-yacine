@@ -29,7 +29,7 @@ bibliothèques tierces, les fichiers de données (`data.js`, `tariffs.js`).
           Fumée sur le site publié        1 parcours, après chaque déploiement
        Bout en bout (Playwright, Chromium)  17 tests, ordinateur et téléphone, ~30 s
     Contrat Supabase (PostgREST direct)       7 tests, réseau requis, ~1 s
- Unitaires et parcours jsdom (node:test)       90 tests, aucune dépendance réseau, ~13 s
+ Unitaires et parcours jsdom (node:test)       90 tests, aucune dépendance réseau, ~10 s
 ```
 
 | Couche | Outil | Fichiers | Ce qu'elle vérifie |
@@ -149,7 +149,7 @@ Corrigé dans le même commit, chaque point ayant son test :
 
 ```
 npm ci                      # une fois
-npm run test:unit           # unitaires et parcours jsdom (13 s)
+npm run test:unit           # unitaires et parcours jsdom (10 s)
 npm run test:unit:coverage  # idem avec la couverture des scripts du site
 npm run test:contract       # Supabase ; PY_TEST_PIN=xxxx pour les cas avec PIN
 npm run test:e2e            # Playwright, ordinateur et téléphone (npx playwright install chromium la première fois)

@@ -122,7 +122,7 @@ describe('score de route et saisie manuelle (avec l’historique)', () => {
   test('formulaire du journal : la journée saisie apparaît avec la pastille « saisie »', async () => {
     c.w.PYAPP.goTab('log');
     c.$('#f_date').value = '2026-10-14'; c.$('#f_parcels').value = '176'; c.$('#f_inv').value = '398.4'; c.$('#f_km').value = '305'; c.$('#f_fuel').value = '57'; c.$('#f_loc').value = 'J0H1A0'; c.$('#f_note').value = 'pluie';
-    c.$('#dayForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.tick(40);
+    c.$('#dayForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.until(() => c.w.PYAPP.S.days.some(x => x.date === '2026-10-14'));
     const d = c.w.PYAPP.S.days.find(x => x.date === '2026-10-14');
     assert.equal(d.parcels, 176); assert.equal(d.invoiced, 398.4); assert.equal(d.km, 305); assert.equal(d.fuel, 57); assert.equal(d.loc, 'J0H1A0'); assert.equal(d.note, 'pluie'); assert.equal(d.source, 'saisie');
     const row = [...c.$('#logTable').querySelectorAll('tr')].find(r => /mer 14 oct/.test(r.textContent));

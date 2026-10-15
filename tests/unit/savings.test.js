@@ -110,7 +110,7 @@ describe('formulaires d’épargne', () => {
   let c;
   before(async () => { c = await boot({ now: NOW, noHistory: true, localState: localState() }); await enter(c, 'goals'); });
   after(() => c.close());
-  const submit = (sel) => { c.$(sel).dispatchEvent(new c.w.Event('submit', { cancelable: true })); return c.tick(40); };
+  const submit = (sel) => { c.$(sel).dispatchEvent(new c.w.Event('submit', { cancelable: true })); return c.until(() => c.$('#modal').hidden); };
 
   test('nouveau projet puis modification puis suppression', async () => {
     c.$('#btnNewGoal').click(); assert.equal(c.$('#modal').hidden, false);
@@ -122,7 +122,7 @@ describe('formulaires d’épargne', () => {
     assert.match(c.$('#savings').textContent, /Permis de classe 3/);
     c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_target').value = '1200'; await submit('#goalForm2');
     g = c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'); assert.equal(g.target, 1200);
-    c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_del').click(); await c.tick(40);
+    c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_del').click(); await c.until(() => !c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'));
     assert.ok(!c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'));
   });
   test('budget : loyer, fixes, vie courante, taux d’impôt', async () => {

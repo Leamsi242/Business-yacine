@@ -84,8 +84,10 @@ async function boot(opts = {}) {
   await w.PYAPP.refresh();
   const $ = s => d.querySelector(s);
   const tick = (ms = 0) => new Promise(r => setTimeout(r, ms));
+  // attend qu'une condition soit vraie (rendu après une promesse, stockage mis à jour), au plus `ms` millisecondes
+  const until = async (fn, ms = 5000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error('condition non remplie après ' + ms + ' ms'); await tick(10); } };
   const close = () => { try { if (w.PY_WORLD) w.PY_WORLD.stop(); } catch (e) {} w.close(); };
-  return { dom, w, d, $, errors, geo, tick, close };
+  return { dom, w, d, $, errors, geo, tick, until, close };
 }
 
 /** Entre dans l'application (après l'accueil) sans ouvrir le brief du matin. */
@@ -101,7 +103,10 @@ async function dropPdf(ctx, name, lines) {
   const file = new w.File([lines.join('\n')], name, { type: 'application/pdf' });
   const inp = $('#pdfFile'); Object.defineProperty(inp, 'files', { value: [file], configurable: true });
   inp.dispatchEvent(new w.Event('change', { bubbles: true }));
-  for (let i = 0; i < 200; i++) { await ctx.tick(5); const s = $('#pdfStatus').textContent; if (s && !/en cours|lecture/i.test(s)) break; }
+  // le statut garde « Lecture… » en préfixe puis reçoit « Importé » ou « Échec » ; refresh() suit dans la même file de micro-tâches
+  const t0 = Date.now();
+  while (!/Importé|Échec/.test($('#pdfStatus').textContent)) { if (Date.now() - t0 > 15000) throw new Error('import PDF sans réponse après 15 s : ' + $('#pdfStatus').textContent); await ctx.tick(10); }
+  await ctx.tick(10);
   return $('#pdfStatus').textContent;
 }
 

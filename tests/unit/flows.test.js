@@ -47,7 +47,7 @@ describe('une journée de Yacine', () => {
     assert.deepEqual(tiles, ['580 $', '435 $', '72 $', '363 $']); // 200 × 2,90 ; × 0,75 ; 380 km × 10 L/100 × 1,90 ; différence
     c.$('#briefNext').click(); await c.tick(5);
     assert.equal(c.$('#briefNext').textContent, 'Commencer le shift');
-    c.$('#briefNext').click(); await c.tick(20);
+    c.$('#briefNext').click(); await c.until(() => c.$('#brief').hidden);
     assert.equal(c.$('#brief').hidden, true);
     const sh = await c.w.PYDB.getShift('2026-10-15');
     assert.equal(sh.route_type, 'loin'); assert.equal(sh.goal_parcels, 200); assert.equal(sh.goal_invoiced, 580); assert.equal(sh.goal_net, 435);
@@ -70,13 +70,13 @@ describe('une journée de Yacine', () => {
   });
 
   test('fin du shift : saisie du soir pré-remplie, journée enregistrée, verdict et suggestion d’épargne', async () => {
-    c.$('#btnEndShift').click(); await c.tick(20);
+    c.$('#btnEndShift').click(); await c.until(() => !c.$('#evening').hidden);
     assert.equal(c.geo.watching, 0); assert.equal(c.w.localStorage.getItem('py-shift'), null);
     assert.equal(c.$('#evening').hidden, false);
     assert.equal(c.$('#ev_km').value, '1'); assert.equal(c.$('#ev_parcels').value, '200', 'l’objectif du matin sert de valeur par défaut');
     assert.match(c.$('#ev_goal').textContent, /Objectif du matin : 200 colis, 435 \$ net/);
     c.$('#ev_parcels').value = '210'; c.$('#ev_inv').value = '600'; c.$('#ev_fuel').value = '70'; c.$('#ev_km').value = '312';
-    c.$('#eveningForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.tick(30);
+    c.$('#eveningForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.until(() => c.$('#ev_result').textContent);
     const res = c.$('#ev_result').textContent.replace(/ /g, ' ');
     assert.match(res, /Objectif atteint : 210 colis \(105 %\)\. Bravo\. Net : 450 \$, après essence 380 \$\./);
     assert.match(res, /Mets 229 \$ de côté pour Ma voiture ce soir \(et 90 \$ dans la réserve d’impôt\)/);
@@ -86,7 +86,7 @@ describe('une journée de Yacine', () => {
     const sh = await c.w.PYDB.getShift('2026-10-15'); assert.equal(sh.km_gps, 1); assert.ok(sh.ended_at);
     c.$('#ev_contrib').click(); await c.tick(5);
     assert.equal(c.$('#evening').hidden, true); assert.equal(c.$('#modal').hidden, false); assert.equal(c.$('#c_amt').value, '229');
-    c.$('#contribForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.tick(30);
+    c.$('#contribForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.until(() => c.$('#modal').hidden);
     assert.equal((await c.w.PYDB.getSavings()).goals.find(g => g.id === 'voiture').saved, 229);
   });
 
@@ -128,7 +128,7 @@ describe('une journée de Yacine', () => {
   test('objectifs : le formulaire met à jour la part et les cibles', async () => {
     c.w.PYAPP.goTab('goals');
     c.$('#g_days').value = '5'; c.$('#g_net').value = '5000'; c.$('#g_status').value = 'indep'; c.$('#g_fuel').value = '65'; c.$('#g_cut').value = '25';
-    c.$('#goalForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.tick(30);
+    c.$('#goalForm').dispatchEvent(new c.w.Event('submit', { cancelable: true })); await c.until(() => c.w.PYAPP.S.goals.days === 5);
     assert.equal(c.w.PYAPP.S.goals.days, 5); assert.equal(c.w.PYAPP.S.goals.net, 5000); assert.equal(c.w.PYAPP.share(), 0.95);
     assert.match(c.$('#mission').textContent, /Travailler 5 jours/);
     assert.ok(c.$('#vanCountdown .tile'), 'compte à rebours van rendu');
