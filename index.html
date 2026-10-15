@@ -6,7 +6,7 @@
 <title>Pilote Yacine</title>
 <meta name="description" content="Tableau de bord, carte des zones, journal, objectifs et simulateur pour la livraison Intelcom de Yacine.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230f6b3b'/%3E%3Crect x='3' y='3' width='26' height='26' rx='2' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 9l10 7-10 7z' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800;900&family=Overpass+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
 <link rel="stylesheet" href="css/app.css">
 </head>
@@ -24,12 +24,9 @@
 
 <div id="landing" class="landing" hidden>
   <div class="inner">
-    <div class="sign">
-      <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
-      <h1>Pilote<br>Yacine</h1>
-      <ul class="dest" id="signDest" aria-label="Destinations les mieux payées, revenu par colis"></ul>
-    </div>
     <div class="landing-copy">
+      <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
+      <h1>Pilote Yacine</h1>
       <p class="lead">Chaque village livré est une destination. Chaque route est un choix qui change ce que la journée rapporte. Ici, Yacine voit ses chiffres, fixe son objectif du matin et garde le cap vers la voiture.</p>
       <div class="row">
         <button class="btn big" id="btnDrive">Prendre la route <kbd>Entrée</kbd></button>
@@ -37,25 +34,31 @@
       </div>
       <p class="small">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d’un village pour voir ce qu’il rapporte.</p>
     </div>
+    <div class="dest-panel">
+      <div class="dest-head"><h2>Destinations les mieux payées</h2><span>$ par colis</span></div>
+      <ol class="dest" id="signDest" aria-label="Destinations les mieux payées, revenu par colis"></ol>
+    </div>
   </div>
-  <div class="road"><div class="van-anim" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
 </div>
 
-<div class="wrap" id="app" hidden>
+<div id="app" hidden>
 <header class="top">
+ <div class="hd">
   <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine <small>Intelcom · Station DRUM</small></h1>
-  <div class="actions"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief">Brief du jour</button><button class="btn" id="btnEvening">Ce soir</button></div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-v="world" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M3.8 10.2c2.6-.8 5.3-1.2 8.2-1.2s5.6.4 8.2 1.2M10.2 13.8 7 19.6M13.8 13.8l3.2 5.8"/></svg><span>Conduire</span></button>
+    <button role="tab" data-v="dash" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16.5V11M12 16.5V5.5M17 16.5V8.5"/></svg><span>Tableau</span></button>
+    <button role="tab" data-v="map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.1-6.5-11a6.5 6.5 0 0113 0c0 4.9-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><span>Zones</span></button>
+    <button role="tab" data-v="log" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M13.5 3.5V8h4.5M9.5 12.5h5M9.5 16h5"/></svg><span>Journal</span></button>
+    <button role="tab" data-v="goals" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Objectifs</span></button>
+    <button role="tab" data-v="sim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Simulateur</span></button>
+    <button role="tab" data-v="tips" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 18h5M10.5 21h3M12 3.5a6 6 0 00-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0012 3.5z"/></svg><span>Conseils</span></button>
+  </nav>
+  <div class="actions"><button class="btn sec" id="btnBrief">Brief du jour</button><button class="btn" id="btnEvening">Ce soir</button></div>
+ </div>
 </header>
+<main class="wrap">
 <div class="shiftbar" id="shiftBar" hidden></div>
-<nav class="tabs" role="tablist">
-  <button role="tab" data-v="world" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l2-5h14l2 5v6h-2a2 2 0 01-4 0H9a2 2 0 01-4 0H3v-6zm3-3l-1 3h14l-1-3H6z"/></svg><span>Conduire</span></button>
-  <button role="tab" data-v="dash" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg><span>Tableau</span></button>
-  <button role="tab" data-v="map" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 9.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z"/></svg><span>Zones</span></button>
-  <button role="tab" data-v="log" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5V3zm3 5h8v2H8V8zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/></svg><span>Journal</span></button>
-  <button role="tab" data-v="goals" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.6 6.8L12 17l-6.2 3.4 1.6-6.8L2.2 9l6.9-.7L12 2z"/></svg><span>Objectifs</span></button>
-  <button role="tab" data-v="sim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v6H4V4zm0 8h7v8H4v-8zm9 0h7v8h-7v-8z"/></svg><span>Simulateur</span></button>
-  <button role="tab" data-v="tips" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 014 12.7V17H8v-2.3A7 7 0 0112 2zM8 19h8v2H8v-2z"/></svg><span>Conseils</span></button>
-</nav>
 
 <section class="view" id="v-world" hidden>
   <div class="worldbox">
@@ -74,10 +77,11 @@
 </section>
 
 <section class="view" id="v-dash">
+  <div class="view-head"><h2>Tableau de bord</h2><p class="small muted" id="hdrinfo"></p></div>
   <div class="tiles" id="kpis"></div>
   <div id="carTile"></div>
   <div class="grid2">
-    <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne jaune pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
+    <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
     <div class="card"><h2>Revenu par colis</h2><p class="small muted">Facturé ÷ colis, par journée travaillée. Une route rurale éloignée se voit tout de suite.</p><div id="chPpp"></div></div>
   </div>
   <div class="card"><h2>Mur des semaines</h2><div id="heatmap"></div></div>
@@ -89,6 +93,7 @@
 </section>
 
 <section class="view" id="v-map" hidden>
+  <div class="view-head"><h2>Zones</h2><p class="small muted">Où chaque colis rapporte le plus, et quelles routes accepter.</p></div>
   <div class="mapwrap">
     <div>
       <div class="mapbox"><div id="map" role="img" aria-label="Carte des localités livrées autour de Drummondville"></div><div class="legend" id="legend"></div></div>
@@ -113,6 +118,7 @@
 </section>
 
 <section class="view" id="v-log" hidden>
+  <div class="view-head"><h2>Journal</h2><p class="small muted">Factures importées, journées saisies et leur audit.</p></div>
   <div class="grid2">
     <div class="card">
       <h2>Importer une facture Intelcom</h2>
@@ -147,6 +153,7 @@
 </section>
 
 <section class="view" id="v-goals" hidden>
+  <div class="view-head"><h2>Objectifs</h2><p class="small muted">Le mois, l’épargne et les étapes du plan.</p></div>
   <div class="grid2">
     <div class="card">
       <h2>Mes objectifs</h2>
@@ -178,6 +185,7 @@
 </section>
 
 <section class="view" id="v-sim" hidden>
+  <div class="view-head"><h2>Simulateur</h2><p class="small muted">Broker ou indépendant : ce que chaque hypothèse change au mois.</p></div>
   <div class="grid2">
     <div class="card">
       <h2>Hypothèses</h2>
@@ -198,16 +206,17 @@
 </section>
 
 <section class="view" id="v-tips" hidden>
+  <div class="view-head"><h2>Conseils</h2><p class="small muted">Ce que tes chiffres disent, du plus urgent au plus général.</p></div>
   <div class="card">
     <h2>Ce que les chiffres recommandent</h2>
     <p class="small muted">Les chiffres viennent des factures importées et des saisies, et changent avec elles. Les conseils sans chiffre sont des réflexes généraux.</p>
     <div class="advice" id="advice"></div>
   </div>
 </section>
+</main>
 </div>
 <div class="overlay brief" id="brief" role="dialog" aria-modal="true" aria-label="Brief du matin" hidden>
   <div class="panel">
-    <div class="road-strip"><div class="van-anim mini" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
     <div class="body" id="briefBody"></div>
     <div class="dots" id="briefDots"></div>
     <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn sec" id="briefPrev">Précédent</button><div class="row"><button class="btn sec" id="briefSkip">Plus tard</button><button class="btn big" id="briefNext">Suivant</button></div></div>

@@ -23,7 +23,7 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 - Bibliothèques CDN (jsDelivr, fichiers npm tels quels, avec `integrity` sha384) : Leaflet 1.9.4, supabase-js 2.45.4
   (`dist/umd/supabase.js`), pdfjs-dist 3.11.174. Changer de version demande de recalculer l'empreinte
   (`openssl dgst -sha384 -binary fichier | openssl base64 -A` sur le fichier du paquet npm) et de mettre à jour le
-  worker et `tests/e2e/fixtures.js`. Polices Google Overpass et Overpass Mono.
+  worker et `tests/e2e/fixtures.js`. Police Google Inter.
 - Une base configurée mais injoignable affiche le bandeau `#netBanner` ; ne jamais retomber en local en silence.
 
 ## Règles du code
@@ -49,14 +49,32 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
   typographiques, jamais de tiret cadratin ni demi-cadratin comme ponctuation (virgule, deux-points ou parenthèses à
   la place), pas de flèches dans la prose.
 
-## Direction artistique « panneau de route »
+## Direction artistique « institutionnelle sobre »
 
-Jetons dans `css/app.css` : fond `--ground`, plaques `--paper` sans bordure ni ombre, vert de signalisation `--sign`
-(aplat) et `--sign-text` (texte, plus clair en mode nuit), bleu de service `--service`, jaune `--warn` réservé à
-la barre de shift et à la tuile voiture, rouge `--stop`. Bande d'odomètre noire `.tiles` pour les chiffres clés,
-panneau vert `.rank` pour les destinations. Mobile : navigation basse à cinq onglets plus « Plus », cibles de 44 px,
-aucun défilement horizontal. Mode nuit par `prefers-color-scheme` et `[data-theme="dark"]`. Avant de toucher au
-design, lire la critique appliquée dans l'historique git (commit « Critique de design appliquée »).
+Esprit : beaucoup de blanc, une seule couleur d'action utilisée avec parcimonie, hiérarchie typographique nette,
+cartes sans bordure, transitions de 200 ms, icônes au trait. Aucun emprunt à une marque existante (logo, nom, photos,
+slogans, police propriétaire).
+
+- Jetons dans `css/app.css` : `--bg`, `--surface`, `--surface-2` (sections alternées, fond des champs), `--ink`
+  (titres), `--ink-body`, `--ink-2`, `--ink-3` (jamais pour du texte), `--rule`. Rouge d'action `--brand` (bouton
+  principal, onglet actif, lien « texte › », focus) et `--brand-deep` au survol ; le bouton plein utilise `--btn`, qui
+  reste #C7000B en mode nuit pour garder le texte blanc lisible. États : `--good`, `--warn` (pictos) et `--warn-text`
+  (texte), `--bad`, chacun avec son fond `-bg` ; une pastille `.pill` ou un conseil porte toujours un symbole (✓, !, ×)
+  en plus de la couleur. Bande des chiffres clés `.tiles` sur `--dark-band`, texte blanc et libellés gris.
+- Les anciens noms (`--sign`, `--sign-text`, `--paper`, `--field`, `--ground`, `--asphalt`, `--stop`, `--seq1` à
+  `--seq5`, `--mono`) restent définis et pointent vers les nouveaux jetons : le JS et les graphiques les lisent.
+- Typographie : Inter (300 à 700) partout ; chiffres tabulaires seulement sur les nombres (Inter élargit aussi les
+  traits d'union). Titres en casse normale ; capitales espacées réservées aux petites étiquettes `.eyebrow` (12 px).
+  Grands chiffres en graisse 300 (40 à 56 px sur ordinateur, 28 à 32 px sur téléphone), corps 15 px, interlignage 1,6.
+- Formes : cartes rayon 12 px sans bordure ni ombre, boutons en pilule (principal plein, `.sec` contour 1 px
+  `--ink`), champs gris soulignés d'un filet `--ink-3` (contraste 3:1). Contenu de 1 200 px au plus, marges 24 px
+  sur ordinateur et 16 px sur téléphone.
+- En-tête blanc fixe sur ordinateur : logo, onglets texte soulignés de rouge pour l'actif, « Brief du jour » et
+  « Ce soir » à droite ; entre 701 et 1 079 px les onglets passent sur une seconde ligne. Téléphone : en-tête non
+  fixe, navigation basse claire à cinq onglets plus « Plus » (icônes au trait), cibles de 44 px au moins, aucun
+  défilement horizontal à 360 px.
+- Mode nuit par `prefers-color-scheme` et `[data-theme="dark"]`. Contrastes AA vérifiés par calcul dans les deux
+  modes (texte 4,5:1, focus et grands chiffres 3:1).
 
 ## Commandes
 
