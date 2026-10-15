@@ -104,8 +104,10 @@ create policy pin_localities on localities for all using (check_pin()) with chec
 create policy pin_drivers    on drivers    for all using (check_pin()) with check (check_pin());
 -- config n'a aucune policy : personne ne peut lire le PIN depuis le site.
 
-insert into config (id, pin) values (1, '1234')
-  on conflict (id) do update set pin = excluded.pin;
+-- PIN initial à remplacer avant d'exécuter (10 caractères au moins, une phrase de passe est l'idéal).
+-- « do nothing » : relancer ce fichier ne remet jamais le PIN à sa valeur d'origine.
+insert into config (id, pin) values (1, 'remplace-moi-par-un-long-pin')
+  on conflict (id) do nothing;
 insert into drivers (id, name, cut) values ('yacine', 'Yacine', 0.25)
   on conflict (id) do nothing;
 insert into goals (driver) values ('yacine') on conflict (driver) do nothing;
@@ -174,3 +176,10 @@ insert into savings_goals (id, name, kind, target, priority, note) values
   ('urgence', 'Coussin de sécurité', 'urgence', 2000, 2, 'Trois semaines de dépenses'),
   ('van', 'Van pour devenir indépendant', 'van', 13800, 3, 'Phase 1 du plan')
 on conflict (id) do nothing;
+
+-- Migration 4 : PIN long. À coller dans Supabase > SQL Editor > Run (une seule fois).
+-- Un PIN de 4 chiffres se devine en 10 000 essais : la base refuse désormais tout nouveau PIN de moins de
+-- 10 caractères. « not valid » laisse fonctionner le PIN actuel jusqu'au prochain changement, à faire ainsi :
+--   update config set pin = 'ta phrase de passe' where id = 1;
+alter table config drop constraint if exists config_pin_long;
+alter table config add constraint config_pin_long check (length(pin) >= 10) not valid;

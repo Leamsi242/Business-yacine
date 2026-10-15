@@ -13,7 +13,7 @@ Dépôt > Settings > Pages > Source : « Deploy from a branch », branche `main`
 ### 2. Supabase (10 minutes, une seule fois)
 
 1. Crée un compte sur https://supabase.com et un projet (région : Canada ou US East, mot de passe de base de données quelconque, note-le).
-2. Dans le projet : **SQL Editor** > **New query**. Colle le contenu de `supabase/schema.sql`. Avant d'exécuter, remplace `'1234'` (dernières lignes) par le code PIN choisi. Clique **Run**.
+2. Dans le projet : **SQL Editor** > **New query**. Colle le contenu de `supabase/schema.sql`. Avant d'exécuter, remplace `'remplace-moi-par-un-long-pin'` par le PIN choisi : 10 caractères au moins (une courte phrase de passe est l'idéal ; un PIN de 4 chiffres se devine en quelques minutes). Clique **Run**.
 3. Nouvelle query : colle `supabase/seed_localities.sql`, **Run** (coordonnées des localités livrées).
 4. **Project Settings** > **API** : copie **Project URL** et la clé **anon public**.
 5. Dans le dépôt GitHub, ouvre `js/config.js`, clique le crayon, colle les deux valeurs entre les guillemets, **Commit changes**. Deux minutes plus tard, le site demande le PIN à l'ouverture.

@@ -252,16 +252,22 @@
     const good = locs.filter(l => l.n >= 40 && l.ppp >= 2.5).sort((a, b) => b.ppp - a.ppp), bad = locs.filter(l => l.n >= 40 && l.ppp < 1.6);
     const badP = bad.length ? bad[0].ppp : 1.46;
     if (good.length) add('', 'Demander les routes ' + good.slice(0, 3).map(l => l.name).join(', '), `Revenu observé de ${fmt(good[0].ppp, 2)} $ par colis contre ${fmt(badP, 2)} $ en zone urbaine. Même nombre de colis, ${fmt(100 * (good[0].ppp / badP - 1))} % de revenu en plus par journée.`, '+' + money((good[0].ppp - badP) * 180 * sh) + ' / j');
-    if (bad.length) add('warn', 'Éviter les routes ' + bad.map(l => l.name).join(' et ') + ' quand le choix existe', `Secteur dense (jusqu’à 226 colis par jour) mais payé ${fmt(bad[0].ppp, 2)} $ par colis : les journées les moins payées de l’historique.`, fmt(bad[0].ppp, 2) + ' $ / colis');
+    if (bad.length) add('warn', 'Éviter les routes ' + bad.map(l => l.name).join(' et ') + ' quand le choix existe', `Secteur dense mais payé ${fmt(bad[0].ppp, 2)} $ par colis : les journées les moins payées de l’historique.`, fmt(bad[0].ppp, 2) + ' $ / colis');
     const withFuel = S.days.filter(d => d.fuel && d.km);
     if (withFuel.length >= 3) { const km = withFuel.reduce((a, e) => a + e.km, 0), f = withFuel.reduce((a, e) => a + e.fuel, 0), perKm = f / km, per100 = perKm / CFG.FUEL_PRICE * 100; add(per100 > 12 ? 'warn' : '', `Coût réel d’essence : ${fmt(perKm, 3)} $ par km (${money(f / withFuel.length)} par jour)`, `Sur ${withFuel.length} journées saisies. À ${fmt(CFG.FUEL_PRICE, 2)} $/L, environ ${fmt(per100, 1)} L/100 km${per100 > 12 ? ' : élevé pour un Transit Connect, vérifier pression des pneus, climatisation et moteur tournant à l’arrêt.' : ', dans la norme pour ce véhicule.'}`, fmt(perKm, 2) + ' $ / km'); }
     else add('warn', 'Saisir km et essence pendant 10 journées', 'Sans ces deux chiffres, l’essence est estimée à ' + money(+S.goals.fuel || 0) + ' par jour. Le vrai chiffre décide si l’indépendance est rentable et de combien.', money(+S.goals.fuel || 0) + ' / j estimés');
-    add('', 'La navette Sherbrooke à Drummondville coûte environ 30 $ par jour', 'Soit 160 km aller-retour, 16 L d’essence et 1 h 40 de route non payée. Sur 216 jours, 5 300 $ par an : plus que le gain d’indépendance à 3 jours par semaine.', '5 300 $ / an');
+    // Navette : distance à vol d'oiseau entre la maison et la station, majorée de 15 % pour la route, à 10 L/100 km.
+    const R = 6371, rad = x => x * Math.PI / 180, h = CFG.HOME, st = CFG.STATION;
+    const crow = 2 * R * Math.asin(Math.sqrt(Math.sin(rad(st.lat - h.lat) / 2) ** 2 + Math.cos(rad(h.lat)) * Math.cos(rad(st.lat)) * Math.sin(rad(st.lon - h.lon) / 2) ** 2));
+    const commKm = Math.round(crow * 1.15) * 2, commDay = commKm * 10 / 100 * CFG.FUEL_PRICE, perYear = Math.round((+S.goals.days || 4.5) * 52);
+    add('', `La navette ${esc(h.name)} à ${esc(st.name)} coûte environ ${money(commDay)} par jour`, `Environ ${commKm} km aller-retour, ${fmt(commKm / 10)} L d’essence à ${fmt(CFG.FUEL_PRICE, 2)} $/L. Sur ${perYear} jours par an (${fmt(+S.goals.days || 4.5, 1)} jours par semaine), ${money(commDay * perYear)}. À garder en tête pour le choix d’un logement ou d’une station.`, money(commDay * perYear) + ' / an');
     const recent = U.pastWeeks(S.days, U.today(), 12), min = goalDays(), full = recent.filter(w => w.days >= min).length, dayNet = avgInvoiced(367) * sh;
     add(full >= 8 ? '' : 'warn', `${full} semaine${full > 1 ? 's' : ''} sur les ${recent.length} dernières à ${min} jours ou plus`, 'Chaque journée vaut environ ' + money(dayNet) + ' net. Un jour de plus par semaine ajoute environ ' + money(dayNet * 4.33) + ' net par mois sans rien changer d’autre.', full + ' / ' + recent.length + ' sem.');
-    add('bad', 'Photographier chaque dépôt de colis', 'Un seul colis perdu a été facturé 422,97 $ en mai, soit 1,5 journée de net. La photo horodatée est la seule défense ; contester chaque déduction par écrit au broker.', '422,97 $');
-    add('warn', 'Carte Visa : rester sous 30 % d’utilisation', 'Limite de 1 500 $ pour 2 500 $ d’achats par mois : demander une hausse de limite ou payer en milieu de cycle. Mettre 20 % de chaque paiement de côté pour l’impôt.', '71 % utilisés');
-    add('', 'Les colis lourds paient : 40 lb rapporte 5,67 $, 60 lb près de 9 $', '88 colis de plus de 30 lb ont rapporté 497 $ sur 9 semaines, soit 5,6 $ chacun contre 2,09 $ en moyenne.', '5,60 $ / colis');
+    add('bad', 'Photographier chaque dépôt de colis', 'Un colis déclaré perdu peut être déduit pour sa pleine valeur, parfois plus d’une journée de net. La photo horodatée est la seule défense ; contester chaque déduction par écrit au broker.');
+    add('warn', 'Carte de crédit : rester sous 30 % d’utilisation', 'Au-dessus, la cote de crédit baisse, ce qui renchérit le financement du van. Demander une hausse de limite ou payer en milieu de cycle.');
+    // Colis lourds : calculé sur les colis importés (factures), seulement s'il y en a assez pour conclure.
+    const heavy = S.parcels.filter(p => +p.wt > 30), allAmt = S.parcels.reduce((a, p) => a + +p.amt, 0);
+    if (heavy.length >= 10) { const hAmt = heavy.reduce((a, p) => a + +p.amt, 0); add('', 'Les colis lourds paient plus', `${fmt(heavy.length)} colis de plus de 30 lb ont rapporté ${money(hAmt)} sur les factures importées, soit ${fmt(hAmt / heavy.length, 2)} $ chacun contre ${fmt(allAmt / S.parcels.length, 2)} $ en moyenne.`, fmt(hAmt / heavy.length, 2) + ' $ / colis'); }
     $('#advice').innerHTML = out.join('');
   }
 
@@ -343,12 +349,14 @@
   $('#btnLocate').onclick = () => window.PYF.locateOnMap(map);
   $('#btnWorldGps').onclick = () => window.PYF.locateInWorld();
   $('#routeScore').addEventListener('submit', e => { e.preventDefault(); window.PYF.scoreRoute(); });
+  function banner(msg) { const b = $('#netBanner'); b.textContent = msg; b.hidden = !msg; }
   async function start() {
     $('#login').hidden = true;
+    if (DB.unavailable) banner('Base partagée injoignable : ce que tu saisis reste sur ce téléphone seulement et n’ira pas dans la base. Recharge la page quand le réseau revient.');
     $('#f_date').value = window.PYU.today();
     let seen = false; try { seen = sessionStorage.getItem('py-landing') === '1'; } catch (e) {}
     if (seen) { $('#app').hidden = false; } else { $('#landing').hidden = false; }
-    try { await refresh(); } catch (err) { toast('Chargement impossible : ' + err.message); }
+    try { await refresh(); } catch (err) { banner('Chargement impossible (' + err.message + ') : les chiffres affichés sont incomplets. Recharge la page quand le réseau revient.'); }
     if (seen) { let t = 'dash'; try { t = localStorage.getItem('py-tab') || 'dash'; } catch (e) {} goTab(t); }
     window.PYF.resumeShift();
     if (seen) window.PYF.openBrief(false);

@@ -20,8 +20,8 @@ const test = base.test.extend({
     if (localMode) await page.route('**/js/config.js', r => r.fulfill({ contentType: 'text/javascript', body: LOCAL_CONFIG }));
     if (OFFLINE) {
       await page.route(/fonts\.googleapis\.com|fonts\.gstatic\.com|unpkg\.com|cdn\.jsdelivr\.net|leaflet|supabase/, r => r.abort());
-      await page.route(/pdf\.js\/3\.11\.174\/pdf\.min\.js/, r => PDFJS ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(PDFJS, 'build', 'pdf.min.js')) }) : r.abort());
-      await page.route(/pdf\.js\/3\.11\.174\/pdf\.worker\.min\.js/, r => PDFJS ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(PDFJS, 'build', 'pdf.worker.min.js')) }) : r.abort());
+      await page.route(/pdfjs-dist@3\.11\.174\/build\/pdf\.min\.js/, r => PDFJS ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(PDFJS, 'build', 'pdf.min.js')) }) : r.abort());
+      await page.route(/pdfjs-dist@3\.11\.174\/build\/pdf\.worker\.min\.js/, r => PDFJS ? r.fulfill({ contentType: 'text/javascript', body: fs.readFileSync(path.join(PDFJS, 'build', 'pdf.worker.min.js')) }) : r.abort());
     }
     await use(page);
   }

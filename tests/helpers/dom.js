@@ -58,6 +58,7 @@ function fakeGeo(w) {
  *  session      : entrées de sessionStorage (ex. { 'py-landing': '1' })
  *  storage      : autres entrées de localStorage (ex. { 'py-shift': '...' })
  *  noHistory    : vide l'historique embarqué (PY_HISTORY, PY_LOCSTATS) pour des calculs déterministes
+ *  config       : texte de js/config.js à utiliser à la place du mode local
  */
 async function boot(opts = {}) {
   let html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/<script src="[^"]*"><\/script>\s*/g, '');
@@ -79,7 +80,7 @@ async function boot(opts = {}) {
   w.onerror = e => errors.push(e);
   for (const n of SCRIPTS) {
     const file = path.join(ROOT, 'js', n + '.js'); if (!fs.existsSync(file)) continue;
-    const src = n === 'config' ? LOCAL_CONFIG : fs.readFileSync(file, 'utf8');
+    const src = n === 'config' ? (opts.config || LOCAL_CONFIG) : fs.readFileSync(file, 'utf8');
     try { w.eval(src + '\n//# sourceURL=js/' + n + '.js'); } catch (e) { e.message = n + '.js : ' + e.message; throw e; }
     if (n === 'data' && opts.noHistory) { w.PY_HISTORY.days = []; w.PY_LOCSTATS = []; }
   }

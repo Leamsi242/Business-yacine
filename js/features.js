@@ -41,7 +41,7 @@
        <p class="small muted">Un objectif chiffré avant de partir augmente le rendement : tu sauras à midi si tu es en avance ou en retard.</p>`,
       () => `<p class="eyebrow">Avant de partir</p><h2>Les trois réflexes</h2>
        <div class="checks">
-        <label><input type="checkbox" data-ck="photo" ${brief.checklist.photo ? 'checked' : ''}> Photo de chaque dépôt (un colis perdu = 422,97 $)</label>
+        <label><input type="checkbox" data-ck="photo" ${brief.checklist.photo ? 'checked' : ''}> Photo de chaque dépôt (un colis perdu peut être déduit en entier)</label>
         <label><input type="checkbox" data-ck="fuel" ${brief.checklist.fuel ? 'checked' : ''}> Garder le reçu d'essence pour la saisie du soir</label>
         <label><input type="checkbox" data-ck="gps" ${brief.checklist.gps !== false ? 'checked' : ''}> Compter mes kilomètres avec le GPS pendant le shift</label>
        </div>

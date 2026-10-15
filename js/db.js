@@ -3,7 +3,10 @@
 (function () {
   const CFG = window.PY_CONFIG || {};
   const LS = 'pilote-yacine-v2';
-  const online = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
+  const configured = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+  // Base configurée mais bibliothèque Supabase absente (CDN injoignable, réseau coupé) : le site retombe en
+  // stockage local, et l'application doit le dire en grand, sinon les saisies restent sur le téléphone sans que personne le sache.
+  const online = configured && !!window.supabase;
   let client = null;
   let pin = '';
   try { pin = sessionStorage.getItem(LS + '-pin') || ''; } catch (e) {}
@@ -36,7 +39,7 @@
   async function readAll(query) { const out = []; for (let from = 0; ; from += PAGE) { const rows = fail(await query().range(from, from + PAGE - 1)); out.push(...rows); if (rows.length < PAGE) return out; } }
 
   const api = {
-    online, isConnected: () => !online || !!client, hasPin: () => !!pin,
+    online, unavailable: configured && !online, isConnected: () => !online || !!client, hasPin: () => !!pin,
     mode: () => online ? 'supabase' : 'local',
 
     // Vérifie le PIN : une lecture qui renvoie une ligne prouve que le PIN est bon.
