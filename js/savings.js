@@ -139,10 +139,12 @@
     let cols = ''; const cur = new Date(start); const months = [];
     while (cur <= end) {
       let col = ''; for (let i = 0; i < 7; i++) { const iso = A().isoDate(cur); const d = by[iso]; const lvl = d ? Math.min(4, Math.ceil(4 * d.invoiced / max)) : 0; col += `<i class="l${lvl}" title="${iso}${d ? ' : ' + d.parcels + ' colis, ' + money(d.invoiced, 2) : ''}"></i>`; if (cur.getDate() <= 7 && i === 0) months.push({ i: months.length, m: cur.toLocaleDateString('fr-CA', { month: 'short' }) }); cur.setDate(cur.getDate() + 1); }
-      cols += `<div class="hcol">${col}</div>`;
+      cols += `<div class="hcol${cur > end ? ' cur' : ''}">${col}</div>`; // la dernière colonne est la semaine en cours
     }
     const worked = S.days.filter(d => d.date >= A().isoDate(start)).length;
-    el.innerHTML = `<div class="hgrid">${cols}</div><p class="small muted">26 dernières semaines : ${worked} journées travaillées, les cases vides sont les jours sans revenu. Plus la case est foncée, plus la journée a rapporté.</p>`;
+    el.innerHTML = `<div class="hgrid">${cols}</div><p class="small muted">26 dernières semaines : ${worked} journées travaillées, les cases vides sont les jours sans revenu. Plus la case est contrastée, plus la journée a rapporté ; la semaine en cours est cernée de rouge.</p>`;
+    // Sur téléphone, le mur défile : on l'ouvre sur la semaine en cours plutôt que sur la plus ancienne.
+    const g = el.querySelector('.hgrid'); if (g) (window.requestAnimationFrame || setTimeout)(() => { g.scrollLeft = g.scrollWidth; });
   }
 
   /* ---- Prévision de fin de mois ---- */
