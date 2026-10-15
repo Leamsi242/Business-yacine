@@ -111,17 +111,17 @@
     const max = Math.max(1, ...S.days.map(d => d.invoiced));
     let cols = ''; const cur = new Date(start); const months = [];
     while (cur <= end) {
-      let col = ''; for (let i = 0; i < 7; i++) { const iso = cur.toISOString().slice(0, 10); const d = by[iso]; const lvl = d ? Math.min(4, Math.ceil(4 * d.invoiced / max)) : 0; col += `<i class="l${lvl}" title="${iso}${d ? ' : ' + d.parcels + ' colis, ' + money(d.invoiced, 2) : ''}"></i>`; if (cur.getDate() <= 7 && i === 0) months.push({ i: months.length, m: cur.toLocaleDateString('fr-CA', { month: 'short' }) }); cur.setDate(cur.getDate() + 1); }
+      let col = ''; for (let i = 0; i < 7; i++) { const iso = A().isoDate(cur); const d = by[iso]; const lvl = d ? Math.min(4, Math.ceil(4 * d.invoiced / max)) : 0; col += `<i class="l${lvl}" title="${iso}${d ? ' : ' + d.parcels + ' colis, ' + money(d.invoiced, 2) : ''}"></i>`; if (cur.getDate() <= 7 && i === 0) months.push({ i: months.length, m: cur.toLocaleDateString('fr-CA', { month: 'short' }) }); cur.setDate(cur.getDate() + 1); }
       cols += `<div class="hcol">${col}</div>`;
     }
-    const worked = S.days.filter(d => d.date >= start.toISOString().slice(0, 10)).length;
+    const worked = S.days.filter(d => d.date >= A().isoDate(start)).length;
     el.innerHTML = `<div class="hgrid">${cols}</div><p class="small muted">26 dernières semaines : ${worked} journées travaillées, les cases vides sont les jours sans revenu. Plus la case est foncée, plus la journée a rapporté.</p>`;
   }
 
   /* ---- Prévision de fin de mois ---- */
   function renderForecast() {
     const el = $('#forecast'); if (!el) return; const { S, share, money, fmt, byWeek } = A();
-    const now = new Date(); const ym = now.toISOString().slice(0, 7); const md = S.days.filter(d => d.date.startsWith(ym));
+    const now = new Date(); const ym = window.PYU.isoMonth(now); const md = S.days.filter(d => d.date.startsWith(ym));
     const done = md.reduce((a, d) => a + d.invoiced, 0) * share();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(); const left = daysInMonth - now.getDate();
     const weeks = byWeek(S.days).slice(-8); const dpw = weeks.length ? weeks.reduce((a, w) => a + w.days, 0) / weeks.length : 4;

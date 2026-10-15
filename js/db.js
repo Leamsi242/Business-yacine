@@ -98,7 +98,7 @@
         const s = local();
         s.invoices = s.invoices.filter(i => i.week !== inv.week); s.invoices.push(Object.assign({ driver: drv }, inv));
         const seen = new Set(parcels.map(p => p.tracking)); s.parcels = s.parcels.filter(p => !seen.has(p.tracking)).concat(parcels.map(p => Object.assign({ driver: drv }, p)));
-        days.forEach(d => { const ex = s.days.find(x => x.date === d.date && x.driver === drv); if (ex) { ex.parcels = d.parcels; ex.invoiced = d.invoiced; if (!ex.loc) ex.loc = d.loc; } else s.days.push(Object.assign({ driver: drv, source: 'facture' }, d)); });
+        days.forEach(d => { const ex = s.days.find(x => x.date === d.date && x.driver === drv); if (ex) { ex.parcels = d.parcels; ex.invoiced = d.invoiced; ex.source = 'facture'; if (!ex.loc) ex.loc = d.loc; } else s.days.push(Object.assign({ driver: drv, source: 'facture' }, d)); });
         saveLocal(s); return;
       }
       fail(await client.from('invoices').upsert(Object.assign({ driver: drv }, inv), { onConflict: 'week,driver' }));
@@ -140,7 +140,7 @@
       fail(await client.from('savings_goals').delete().eq('id', id));
     },
     async addContribution(goalId, amount, note) {
-      const row = { driver: DRIVER(), goal_id: goalId, date: new Date().toISOString().slice(0, 10), amount: +amount, note: note || null };
+      const row = { driver: DRIVER(), goal_id: goalId, date: window.PYU.today(), amount: +amount, note: note || null };
       if (!online) { const s = local(); s.savingsLog = s.savingsLog || []; s.savingsLog.unshift(Object.assign({ id: Date.now() }, row)); const g = (s.savings || []).find(x => x.id === goalId); if (g) g.saved = +(+g.saved + +amount).toFixed(2); saveLocal(s); return; }
       fail(await client.from('savings_log').insert(row));
       const cur = fail(await client.from('savings_goals').select('saved').eq('id', goalId));

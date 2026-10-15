@@ -42,7 +42,7 @@
     S.locstats = Object.values(ls).filter(l => l.n > 0);
   }
 
-  function weekStart(ds) { const d = new Date(ds + 'T12:00:00'); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); }
+  const weekStart = ds => window.PYU.weekStart(ds);
   function byWeek(days) { const m = {}; days.forEach(d => { const k = weekStart(d.date); const w = (m[k] = m[k] || { wk: k, parcels: 0, inv: 0, days: 0, fuel: 0, km: 0 }); w.parcels += d.parcels; w.inv += d.invoiced; w.days++; w.fuel += d.fuel || 0; w.km += d.km || 0; }); return Object.values(m).sort((a, b) => a.wk < b.wk ? -1 : 1); }
   const fuelOf = d => d.fuel != null ? d.fuel : (+S.goals.fuel || 0);
   const locName = c => c && LOCBY[c] ? LOCBY[c].name : (c || '—');
@@ -50,7 +50,7 @@
   /* ---------- Tableau de bord ---------- */
   function renderDash() {
     const days = S.days, weeks = byWeek(days), sh = share();
-    const ym = new Date().toISOString().slice(0, 7);
+    const ym = window.PYU.isoMonth(new Date());
     let monthDays = days.filter(d => d.date.startsWith(ym)), label = 'ce mois-ci';
     if (!monthDays.length && days.length) { const lm = days[days.length - 1].date.slice(0, 7); monthDays = days.filter(d => d.date.startsWith(lm)); label = 'dernier mois avec données (' + lm + ')'; }
     const inv = monthDays.reduce((a, d) => a + d.invoiced, 0), net = inv * sh, parcels = monthDays.reduce((a, d) => a + d.parcels, 0);
@@ -62,7 +62,7 @@
       ['Par jour travaillé', money(avgDay * sh), 'moyenne sur ' + days.length + ' jours, ' + money(avgDay) + ' facturés'],
       ['Revenu par colis', money(parcels ? inv / parcels : 0, 2), fmt(parcels) + ' colis ' + label],
       ['Objectif net mensuel', fmt(Math.min(999, Math.round(100 * net / (+S.goals.net || 1)))) + ' %', 'cible ' + money(+S.goals.net)],
-      (() => { const ws = weekStart(new Date().toISOString().slice(0, 10)); const wd = days.filter(d => d.date >= ws); return ['Cette semaine', wd.length + ' j', 'sur ' + fmt(S.goals.days, 1) + ' visés · ' + money(wd.reduce((a, d) => a + d.invoiced, 0) * sh) + ' net']; })()
+      (() => { const ws = weekStart(window.PYU.today()); const wd = days.filter(d => d.date >= ws); return ['Cette semaine', wd.length + ' j', 'sur ' + fmt(S.goals.days, 1) + ' visés · ' + money(wd.reduce((a, d) => a + d.invoiced, 0) * sh) + ' net']; })()
     ].map(t => `<div class="tile"><div class="lab">${t[0]}</div><div class="val">${t[1]}</div><div class="sub">${t[2]}</div></div>`).join('');
     $('#hdrinfo').textContent = days.length + ' journées, ' + fmt(days.reduce((a, d) => a + d.parcels, 0)) + ' colis';
     $('#chWeeks').innerHTML = barChart(weeks.slice(-14).map(w => ({ x: w.wk.slice(5), y: w.inv * sh, sub: w.days + ' j' })), { goal: (+S.goals.net || 0) / 4.33 });
@@ -150,7 +150,7 @@
     const ex = S.days.find(d => d.date === date) || {};
     const v = id => $(id).value;
     const row = { date, parcels: v('#f_parcels') !== '' ? +v('#f_parcels') : (ex.parcels || 0), invoiced: v('#f_inv') !== '' ? +v('#f_inv') : (ex.invoiced || 0), km: v('#f_km') !== '' ? +v('#f_km') : (ex.km ?? null), fuel: v('#f_fuel') !== '' ? +v('#f_fuel') : (ex.fuel ?? null), loc: v('#f_loc') || ex.loc || null, note: v('#f_note').trim() || ex.note || null, source: ex.source === 'facture' ? 'facture' : 'saisie' };
-    try { await DB.upsertDay(row); toast('Journée du ' + date + ' enregistrée'); e.target.reset(); $('#f_date').value = new Date().toISOString().slice(0, 10); await refresh(); }
+    try { await DB.upsertDay(row); toast('Journée du ' + date + ' enregistrée'); e.target.reset(); $('#f_date').value = window.PYU.today(); await refresh(); }
     catch (err) { toast('Enregistrement refusé : ' + err.message); }
   });
   $('#f_date').addEventListener('change', () => { const ex = S.days.find(d => d.date === $('#f_date').value); if (!ex) return; $('#f_parcels').value = ex.parcels || ''; $('#f_inv').value = ex.invoiced || ''; $('#f_km').value = ex.km ?? ''; $('#f_fuel').value = ex.fuel ?? ''; $('#f_loc').value = ex.loc || ''; $('#f_note').value = ex.note || ''; });
@@ -176,7 +176,7 @@
       try {
         const r = await window.PYPDF.parseInvoice(f);
         await DB.importInvoice(r.inv, r.parcels, r.days);
-        try { const audit = window.PYF.auditInvoice(r.inv, r.parcels, r.days, S.days); await DB.saveAudit(r.inv.week, audit); } catch (ae) { console.warn(ae); }
+        try { const audit = window.PYF.auditInvoice(r.inv, r.parcels, r.days, S.days, r.meta); await DB.saveAudit(r.inv.week, audit); } catch (ae) { console.warn(ae); }
         st.innerHTML += `<div><span class="pill good">Importé</span> ${esc(f.name)} : semaine ${esc(r.inv.week)}, ${r.days.length} journées, ${r.parcels.length} colis, total facture ${money(r.inv.total, 2)}</div>`;
       } catch (err) { st.innerHTML += `<div><span class="pill bad">Échec</span> ${esc(f.name)} : ${esc(err.message)}</div>`; }
     }
@@ -308,7 +308,7 @@
     window._moreNav = { more, hidden };
   })();
   async function refresh() { await load(); fillLocSelect(); fillGoals(); renderDash(); renderLog(); renderGoals(); renderSim(); renderTips(); if (!$('#v-map').hidden) renderMap(); if (window.PYF) { window.PYF.renderMission(); window.PYF.renderVanCountdown(); window.PYF.renderAudits(S.invoices); } if (window.PYS) { try { await window.PYS.refresh(); } catch (e) { console.warn(e); } } }
-  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, getMap: () => map };
+  window.PYAPP = { get S() { return S; }, share, fmt, money, esc, toast, goTab, selectLoc, refresh: () => refresh(), byWeek, weekStart, isoDate: d => window.PYU.isoDate(d), getMap: () => map };
   $('#btnBrief').onclick = () => window.PYF.openBrief(true);
   $('#btnEvening').onclick = () => window.PYF.openEvening();
   $('#evClose').onclick = () => window.PYF.closeEvening();
@@ -317,7 +317,7 @@
   $('#routeScore').addEventListener('submit', e => { e.preventDefault(); window.PYF.scoreRoute(); });
   async function start() {
     $('#login').hidden = true;
-    $('#f_date').value = new Date().toISOString().slice(0, 10);
+    $('#f_date').value = window.PYU.today();
     let seen = false; try { seen = sessionStorage.getItem('py-landing') === '1'; } catch (e) {}
     if (seen) { $('#app').hidden = false; } else { $('#landing').hidden = false; }
     try { await refresh(); } catch (err) { toast('Chargement impossible : ' + err.message); }

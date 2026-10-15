@@ -46,6 +46,8 @@ js/data.js              historique avril à septembre 2026 (9 factures) et local
 js/db.js                accès aux données (Supabase ou local)
 js/pdf-import.js        lecture des factures PDF Intelcom
 js/app.js               application
+js/util.js              dates en heure locale, clés de la grille tarifaire
+tests/                  tests (voir TESTING.md)
 supabase/schema.sql     tables, sécurité par PIN
 supabase/seed_localities.sql  coordonnées des localités
 ```
@@ -57,3 +59,7 @@ Quand une facture contient un code postal inconnu, il apparaît dans le classeme
 ## Recruter un chauffeur (phase 2 du plan)
 
 La table `drivers` et la colonne `driver` des tables `days`, `parcels`, `invoices` et `goals` sont prêtes. L'interface multi-chauffeurs (sélecteur, marge broker par van) est la prochaine étape du site.
+
+## Tests
+
+Trois couches : unitaires et parcours dans jsdom (`npm run test:unit`, 90 tests, 13 s), contrat Supabase (`npm run test:contract`, sécurité par PIN et tables des migrations), bout en bout dans Chromium ordinateur et téléphone (`npm run test:e2e`, import d'un vrai PDF compris). La CI GitHub Actions les lance à chaque push et refait un parcours de fumée sur le site publié après chaque déploiement. Le plan complet, les cas couverts et les lacunes sont dans `TESTING.md`.

@@ -3,7 +3,7 @@
 (function () {
   const A = () => window.PYAPP, DB = window.PYDB, CFG = window.PY_CONFIG, T = window.PY_TARIFFS || {};
   const $ = s => document.querySelector(s);
-  const todayISO = () => new Date().toISOString().slice(0, 10);
+  const todayISO = () => window.PYU.today();
   const DAYS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
   const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const ROUTE_TYPES = { urbain: { label: 'Urbaine (Drummondville)', ppp: 1.46, km: 220, desc: 'Dense, 200 à 226 colis, peu payée' }, rural: { label: 'Rurale proche (Acton Vale, Wickham, L’Avenir)', ppp: 2.12, km: 300, desc: 'La route standard, 170 à 190 colis' }, loin: { label: 'Rurale éloignée (Ham-Nord, Chesterville, Norbertville)', ppp: 2.90, km: 380, desc: 'La mieux payée, plus de route' } };
@@ -26,19 +26,20 @@
     let carLine = '';
     try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline"><b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd'hui rapproche la voiture d'environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
     brief.route = brief.route || suggested;
+    // Chaque écran est une fonction : le rendu reflète le choix courant (route sélectionnée, objectif).
     const slides = [
-      `<p class="eyebrow">${dateTxt}</p><h2>Bonjour Yacine.</h2>
+      () => `<p class="eyebrow">${dateTxt}</p><h2>Bonjour Yacine.</h2>
        <p class="lead">Cette semaine : <b>${wk.days} jour${wk.days > 1 ? 's' : ''}</b> sur ${fmt(S.goals.days, 1)} visés, <b>${money(wk.inv * sh)}</b> net déjà facturés. Série en cours : <b>${streak} semaine${streak > 1 ? 's' : ''}</b> réussie${streak > 1 ? 's' : ''} (cible 12 pour la phase 1).</p>
        <div class="bar"><i style="width:${Math.min(100, 100 * wk.days / S.goals.days)}%"></i></div>
        <p class="small muted">Ta moyenne : ${money(avg)} facturés par jour, soit ${money(avg * sh)} net avant essence.</p>${carLine}`,
-      `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd'hui ?</h2>
+      () => `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd'hui ?</h2>
        <div class="choices">${Object.entries(ROUTE_TYPES).map(([k, r]) => `<button class="choice ${brief.route === k ? 'on' : ''}" data-route="${k}"><b>${r.label}</b><span>${r.desc}</span><em>${fmt(r.ppp, 2)} $/colis · 180 colis ≈ ${money(r.ppp * 180)} facturés, ${money(r.ppp * 180 * sh)} net</em>${k === suggested ? '<i class="pill good">Conseillée</i>' : ''}</button>`).join('')}</div>
        <p class="small muted">Si on te propose ${best.map(l => l.name).join(', ')}, dis oui : ce sont tes zones les mieux payées.</p>`,
-      `<p class="eyebrow">Choix n° 2</p><h2>Ton objectif du jour</h2>
+      () => `<p class="eyebrow">Choix n° 2</p><h2>Ton objectif du jour</h2>
        <label class="sl">Colis visés <output id="bf_out">${brief.parcels}</output><input type="range" id="bf_parcels" min="90" max="240" step="5" value="${brief.parcels}"></label>
        <div class="tiles" id="bf_tiles"></div>
        <p class="small muted">Un objectif chiffré avant de partir augmente le rendement : tu sauras à midi si tu es en avance ou en retard.</p>`,
-      `<p class="eyebrow">Avant de partir</p><h2>Les trois réflexes</h2>
+      () => `<p class="eyebrow">Avant de partir</p><h2>Les trois réflexes</h2>
        <div class="checks">
         <label><input type="checkbox" data-ck="photo" ${brief.checklist.photo ? 'checked' : ''}> Photo de chaque dépôt (un colis perdu = 422,97 $)</label>
         <label><input type="checkbox" data-ck="fuel" ${brief.checklist.fuel ? 'checked' : ''}> Garder le reçu d'essence pour la saisie du soir</label>
@@ -49,7 +50,7 @@
     briefStep = 0;
     const el = $('#brief'); el.hidden = false; document.body.classList.add('noscroll');
     const render = () => {
-      $('#briefBody').innerHTML = slides[briefStep];
+      $('#briefBody').innerHTML = slides[briefStep]();
       $('#briefDots').innerHTML = slides.map((_, i) => `<i class="${i === briefStep ? 'on' : ''}"></i>`).join('');
       $('#briefPrev').hidden = briefStep === 0; $('#briefNext').textContent = briefStep === slides.length - 1 ? 'Commencer le shift' : 'Suivant';
       $('#briefBody').querySelectorAll('[data-route]').forEach(b => b.onclick = () => { brief.route = b.dataset.route; render(); });
@@ -71,7 +72,7 @@
     $('#briefSkip').onclick = () => { try { localStorage.setItem(seenKey, '1'); } catch (e) {} closeBrief(); };
   }
   function closeBrief() { $('#brief').hidden = true; document.body.classList.remove('noscroll'); }
-  function weekStart(ds) { const d = new Date(ds + 'T12:00:00'); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); }
+  const weekStart = ds => window.PYU.weekStart(ds);
 
   /* ===== Shift et GPS ===== */
   let geoWatch = null, shift = null;
@@ -120,17 +121,17 @@
       try { await DB.upsertDay(row); } catch (err) { A().toast('Refusé : ' + err.message); return; }
       let msg = 'Journée enregistrée.';
       if (sh && row.parcels) { const pct = Math.round(100 * row.parcels / sh.goal_parcels); msg = pct >= 100 ? `Objectif atteint : ${row.parcels} colis (${pct} %). Bravo.` : `${row.parcels} colis sur ${sh.goal_parcels} visés (${pct} %).`; if (row.invoiced) msg += ` Net : ${money(row.invoiced * share())}${row.fuel ? ', après essence ' + money(row.invoiced * share() - row.fuel) : ''}.`; }
-      let sugg = '';
-      if (window.PYS && row.invoiced) { const sg = window.PYS.eveningSuggestion(row.invoiced * share(), row.fuel || 0); if (sg.carGoal && sg.car > 5) sugg = `<p style="margin-top:8px">Mets <b>${money(sg.car)}</b> de côté pour ${A().esc(sg.carGoal.name)} ce soir (et ${money(sg.tax)} dans la réserve d’impôt). <button class="btn" type="button" id="ev_contrib" style="padding:5px 10px">Verser ${money(sg.car)}</button></p>`; }
+      let sugg = '', sg = null;
+      if (window.PYS && row.invoiced) { sg = window.PYS.eveningSuggestion(row.invoiced * share(), row.fuel || 0); if (sg.carGoal && sg.car > 5) sugg = `<p style="margin-top:8px">Mets <b>${money(sg.car)}</b> de côté pour ${A().esc(sg.carGoal.name)} ce soir (et ${money(sg.tax)} dans la réserve d’impôt). <button class="btn" type="button" id="ev_contrib" style="padding:5px 10px">Verser ${money(sg.car)}</button></p>`; }
       $('#ev_result').innerHTML = `<p class="pill ${sh && row.parcels >= (sh.goal_parcels || 0) ? 'good' : 'warn'}" style="font-size:14px;padding:8px 12px">${msg}</p>${sugg}`;
       await A().refresh();
-      const cb = $('#ev_contrib'); if (cb) { cb.onclick = () => { closeEvening(); const sg = window.PYS.eveningSuggestion(row.invoiced * share(), row.fuel || 0); window.PYS.openContrib(sg.carGoal.id, sg.car); }; } else setTimeout(closeEvening, 1800);
+      const cb = $('#ev_contrib'); if (cb) { cb.onclick = () => { closeEvening(); window.PYS.openContrib(sg.carGoal.id, sg.car); }; } else setTimeout(closeEvening, 1800);
     };
   }
   function closeEvening() { $('#evening').hidden = true; document.body.classList.remove('noscroll'); }
 
   /* ===== Audit de facture ===== */
-  function auditInvoice(inv, parcels, days, journalDays) {
+  function auditInvoice(inv, parcels, days, journalDays, meta) {
     const issues = []; const ok = [];
     const sumAmt = parcels.reduce((a, p) => a + p.amt, 0);
     if (Math.abs(sumAmt - inv.base) > 0.5) issues.push({ sev: 'bad', t: `Somme des colis (${sumAmt.toFixed(2)} $) différente de la base facturée (${inv.base.toFixed(2)} $)` }); else ok.push('Somme des colis = base facturée');
@@ -141,13 +142,13 @@
     if (inv.cancel > 0) issues.push({ sev: 'warn', t: `Annulations déduites : ${inv.cancel.toFixed(2)} $ (vérifier la dernière page de la facture)` });
     // tarifs vs référence
     const changed = {}; let nChanged = 0;
-    parcels.forEach(p => { const k = p.zone + '|' + p.wt; const ref = T[k]; if (ref != null && Math.abs(ref - p.amt) > 0.005) { nChanged++; changed[k] = changed[k] || { ref, now: p.amt, n: 0 }; changed[k].n++; } });
+    parcels.forEach(p => { const k = window.PYU.tariffKey(p.zone, p.wt); const ref = T[k]; if (ref != null && Math.abs(ref - p.amt) > 0.005) { nChanged++; changed[k] = changed[k] || { ref, now: p.amt, n: 0 }; changed[k].n++; } });
     if (nChanged) { const ex = Object.entries(changed).sort((a, b) => b[1].n - a[1].n).slice(0, 4).map(([k, v]) => `${k.replace('|', ' ')} lb : ${v.ref.toFixed(2)} → ${v.now.toFixed(2)} $ (${v.n})`).join(' ; '); const up = Object.values(changed).filter(v => v.now > v.ref).length, down = Object.values(changed).filter(v => v.now < v.ref).length; issues.push({ sev: down > up ? 'bad' : 'warn', t: `Grille tarifaire différente de la référence sur ${nChanged} colis (${up} hausses, ${down} baisses de tarif). Exemples : ${ex}` }); } else ok.push('Tarifs conformes à la grille de référence');
     // journées
     const invDates = new Set(days.map(d => d.date));
     (journalDays || []).filter(d => d.date >= inv.from_date && d.date <= inv.to_date && d.source === 'saisie' && d.parcels >= 20).forEach(d => { if (!invDates.has(d.date)) issues.push({ sev: 'bad', t: `Journée saisie le ${d.date} (${d.parcels} colis) absente de la facture` }); });
     days.forEach(d => { const n = parcels.filter(p => p.date === d.date).length; if (n !== d.parcels) issues.push({ sev: 'warn', t: `${d.date} : ${d.parcels} colis au résumé, ${n} lignes de colis détaillées` }); });
-    const sig = parcels.filter(p => p.sig).length; if (sig) ok.push(sig + ' colis avec signature');
+    const sig = meta && meta.sig ? meta.sig : 0; if (sig) ok.push(sig + ' colis avec signature');
     return { at: new Date().toISOString(), issues, ok, parcels: parcels.length, days: days.length };
   }
   function renderAudits(invoices) {

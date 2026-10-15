@@ -1,0 +1,17 @@
+{
+  "name": "pilote-yacine",
+  "private": true,
+  "description": "Pilote Yacine : site statique (GitHub Pages) et tests. Le site n'a aucune dépendance d'exécution ; ce fichier ne sert qu'aux tests.",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "TZ=America/Toronto node --test \"tests/unit/**/*.test.js\"",
+    "test:unit:coverage": "rm -rf coverage && NODE_V8_COVERAGE=coverage/raw TZ=America/Toronto node --test \"tests/unit/**/*.test.js\" && node tests/coverage.js",
+    "test:contract": "node --test \"tests/contract/**/*.test.js\"",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.js",
+    "test:e2e:ui": "playwright test -c tests/e2e/playwright.config.js --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0",
+    "jsdom": "^25.0.1"
+  }
+}

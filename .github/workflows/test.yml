@@ -1,0 +1,67 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Déployer sur GitHub Pages"]
+    types: [completed]
+
+jobs:
+  unitaires:
+    name: Unitaires, parcours jsdom, contrat Supabase
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tests unitaires et couverture des scripts du site
+        run: npm run test:unit:coverage
+        env:
+          COVERAGE_MIN: 75
+      - name: Contrat Supabase (RLS par PIN, tables des migrations)
+        run: npm run test:contract
+        env:
+          PY_TEST_PIN: ${{ secrets.PY_TEST_PIN }}
+
+  bout-en-bout:
+    name: Chromium (ordinateur et téléphone)
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: tests/e2e/.out
+          retention-days: 7
+
+  site-deploye:
+    name: Fumée sur le site publié
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Parcours de fumée contre https://leamsi242.github.io/Business-yacine/
+        run: npx playwright test -c tests/e2e/playwright.config.js --project=ordinateur smoke
+        env:
+          PY_BASE_URL: https://leamsi242.github.io/Business-yacine/
