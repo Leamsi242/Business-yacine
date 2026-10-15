@@ -28,7 +28,7 @@
     brief.route = brief.route || suggested;
     const slides = [
       `<p class="eyebrow">${dateTxt}</p><h2>Bonjour Yacine.</h2>
-       <p class="lead">Cette semaine : <b>${wk.days} jour${wk.days > 1 ? 's' : ''}</b> sur ${S.goals.days} visés, <b>${money(wk.inv * sh)}</b> net déjà facturés. Série en cours : <b>${streak} semaine${streak > 1 ? 's' : ''}</b> réussie${streak > 1 ? 's' : ''} (cible 12 pour la phase 1).</p>
+       <p class="lead">Cette semaine : <b>${wk.days} jour${wk.days > 1 ? 's' : ''}</b> sur ${fmt(S.goals.days, 1)} visés, <b>${money(wk.inv * sh)}</b> net déjà facturés. Série en cours : <b>${streak} semaine${streak > 1 ? 's' : ''}</b> réussie${streak > 1 ? 's' : ''} (cible 12 pour la phase 1).</p>
        <div class="bar"><i style="width:${Math.min(100, 100 * wk.days / S.goals.days)}%"></i></div>
        <p class="small muted">Ta moyenne : ${money(avg)} facturés par jour, soit ${money(avg * sh)} net avant essence.</p>${carLine}`,
       `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd'hui ?</h2>
@@ -111,6 +111,7 @@
     const el = $('#evening'); el.hidden = false; document.body.classList.add('noscroll');
     $('#ev_date').value = date; $('#ev_km').value = km || ex.km || ''; $('#ev_fuel').value = ex.fuel ?? ''; $('#ev_parcels').value = ex.parcels || (sh ? sh.goal_parcels : '') || ''; $('#ev_inv').value = ex.invoiced || '';
     $('#ev_loc').innerHTML = '<option value="">—</option>' + S.localities.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(l => `<option value="${l.code}" ${ex.loc === l.code ? 'selected' : ''}>${l.name}</option>`).join('');
+    const dd = new Date(date + 'T12:00:00'); $('#ev_eyebrow').textContent = 'Saisie du soir · ' + DAYS_FR[dd.getDay()] + ' ' + dd.getDate() + ' ' + MONTHS_FR[dd.getMonth()];
     $('#ev_goal').innerHTML = sh ? `Objectif du matin : <b>${sh.goal_parcels} colis</b>, ${money(sh.goal_net)} net (${ROUTE_TYPES[sh.route_type] ? ROUTE_TYPES[sh.route_type].label : ''}).` : 'Pas d’objectif fixé ce matin.';
     $('#ev_result').innerHTML = '';
     $('#eveningForm').onsubmit = async e => {

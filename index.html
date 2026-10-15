@@ -43,7 +43,7 @@
 <div class="wrap" id="app" hidden>
 <header class="top">
   <h1><span class="mark" aria-hidden="true"></span>Pilote Yacine <small>Intelcom · Station DRUM</small></h1>
-  <div class="row"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief" style="padding:6px 10px">Brief du jour</button><button class="btn" id="btnEvening" style="padding:6px 10px">Ce soir</button></div>
+  <div class="actions"><span class="small muted" id="hdrinfo"></span><button class="btn sec" id="btnBrief">Brief du jour</button><button class="btn" id="btnEvening">Ce soir</button></div>
 </header>
 <div class="shiftbar" id="shiftBar" hidden></div>
 <nav class="tabs" role="tablist">
@@ -116,7 +116,7 @@
     <div class="card">
       <h2>Importer une facture Intelcom</h2>
       <p class="small muted">Dépose le PDF « Delivery Invoice » de la semaine : les journées, le facturé et chaque colis (code postal, zone, poids, montant) sont extraits automatiquement. Les km et l'essence déjà saisis sont conservés.</p>
-      <input type="file" id="pdfFile" accept="application/pdf" multiple>
+      <label class="drop" id="pdfDrop"><span class="arrow" aria-hidden="true"></span><b>Déposer le PDF de la semaine</b><span>ou toucher pour choisir le fichier (plusieurs à la fois possible)</span><input type="file" id="pdfFile" accept="application/pdf" multiple></label>
       <div id="pdfStatus" class="small" style="margin-top:8px"></div>
     </div>
     <div class="card">
@@ -138,6 +138,7 @@
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Journées enregistrées</h2><span class="small muted" id="storageMode"></span></div>
     <div class="tscroll"><table id="logTable"></table></div>
+    <div class="log-more"><button class="btn sec" id="logMore" hidden>Afficher toutes les journées</button></div>
   </div>
 </section>
 
@@ -210,14 +211,14 @@
 </div>
 <div class="overlay" id="evening" hidden>
   <form class="panel" id="eveningForm">
-    <p class="eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c'est fait</h2>
+    <p class="eyebrow" id="ev_eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c'est fait</h2>
     <p class="small muted" id="ev_goal"></p>
     <input type="hidden" id="ev_date">
     <div class="bigfields">
       <label class="fl">Km parcourus<input type="number" id="ev_km" inputmode="numeric" placeholder="340"></label>
       <label class="fl">Essence ($)<input type="number" id="ev_fuel" inputmode="decimal" step="0.01" placeholder="62"></label>
       <label class="fl">Colis livrés<input type="number" id="ev_parcels" inputmode="numeric" placeholder="180"></label>
-      <label class="fl">Facturé ($) si connu<input type="number" id="ev_inv" inputmode="decimal" step="0.01" placeholder="sinon via la facture"></label>
+      <label class="fl">Facturé ($) si connu<input type="number" id="ev_inv" inputmode="decimal" step="0.01" placeholder="facture"></label>
       <label class="fl" style="grid-column:1/-1">Zone principale<select id="ev_loc"></select></label>
     </div>
     <div id="ev_result" style="margin-top:8px"></div>
