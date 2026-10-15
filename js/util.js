@@ -59,6 +59,14 @@
     try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; } catch (e) { return fallback; }
   }
 
-  window.PYU = { isoDate, isoMonth, today: () => isoDate(new Date()), addDays, weekStart, tariffKey, numOr, billed, avgInvoiced, pastWeeks, streak,
+  // Numéro de semaine ISO (lundi, semaine 1 = celle du premier jeudi de l'année), comme les factures Intelcom
+  // (« 2026-41 » pour la semaine du 5 octobre 2026). Renvoie { year, week }.
+  function isoWeek(ds) {
+    const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    const y = d.getFullYear(), jan4 = new Date(y, 0, 4, 12);
+    return { year: y, week: 1 + Math.round(((d - jan4) / 864e5 - 3 + (jan4.getDay() + 6) % 7) / 7) };
+  }
+
+  window.PYU = { isoDate, isoMonth, today: () => isoDate(new Date()), addDays, weekStart, tariffKey, numOr, billed, avgInvoiced, pastWeeks, streak, isoWeek,
     SEQ, SEQ_EDGE, seqLevel, seqColor, isDark, cssVar };
 })();

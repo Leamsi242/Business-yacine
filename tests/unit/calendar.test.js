@@ -76,3 +76,58 @@ describe('calendrier', () => {
     } finally { c.close(); }
   });
 });
+
+describe('numéros de semaine et vue « Semaines »', () => {
+  test('isoWeek : numéros ISO, comme les factures Intelcom', async () => {
+    const c = await boot({ now: NOW, noHistory: true });
+    try {
+      const W = ds => JSON.parse(JSON.stringify(c.w.PYU.isoWeek(ds)));
+      assert.deepEqual(W('2026-10-05'), { year: 2026, week: 41 }); // facture « 2026-41 »
+      assert.deepEqual(W('2026-10-11'), { year: 2026, week: 41 }); // dimanche, même semaine
+      assert.deepEqual(W('2026-01-01'), { year: 2026, week: 1 });
+      assert.deepEqual(W('2025-12-29'), { year: 2026, week: 1 }); // lundi de la semaine 1 de 2026
+      assert.deepEqual(W('2027-01-01'), { year: 2026, week: 53 });
+    } finally { c.close(); }
+  });
+  test('vue « Mois » : chaque ligne porte son numéro de semaine', async () => {
+    const c = await boot({ now: NOW, noHistory: true, localState: localState() });
+    try {
+      await enter(c, 'dash');
+      const nums = [...c.$('#heatmap').querySelectorAll('.cal-row:not(.cal-wd) .cal-wn')].map(x => x.textContent);
+      assert.deepEqual(nums, ['S40', 'S41', 'S42', 'S43', 'S44']);
+    } finally { c.close(); }
+  });
+  test('bascule vers « Semaines » : 12 lignes, la plus récente en haut, net lisible par jour et total, choix mémorisé', async () => {
+    const c = await boot({ now: NOW, noHistory: true, localState: localState() });
+    try {
+      await enter(c, 'dash');
+      c.$('#heatmap [data-view="wall"]').click();
+      assert.equal(c.$('#heatmap [data-view="wall"]').getAttribute('aria-pressed'), 'true');
+      assert.equal(c.w.localStorage.getItem('py-cal-view'), 'wall');
+      const rows = [...c.$('#heatmap').querySelectorAll('.wall-row:not(.wall-head)')];
+      assert.equal(rows.length, 12);
+      assert.match(rows[0].querySelector('.wall-wk').textContent, /^S4212 au 18 oct\.$/);
+      assert.match(NB(rows[1].querySelector('.wall-wk').textContent), /^S415 au 11 oct\.$/);
+      const mon = rows[1].querySelector('.cal-d[data-date="2026-10-05"]');
+      assert.equal(mon.querySelector('.amt').textContent, '300'); assert.ok(/lv\d/.test(mon.className));
+      assert.match(NB(rows[1].querySelector('.wall-tot').textContent), /1 200 \$4 j · 720 colis/);
+      assert.ok(rows[1].querySelector('.wall-tot').classList.contains('ok'));
+      assert.match(NB(c.$('#heatmap .cal-sum').textContent), /8 semaines sur 11 à 4 jours ou plus/);
+      c.$('#wallMore').click(); assert.equal(c.$('#heatmap').querySelectorAll('.wall-row:not(.wall-head)').length, 24);
+    } finally { c.close(); }
+  });
+  test('mur : toucher une semaine l’ouvre dans le mois ; toucher un jour affiche son détail ; flèche du bas recule d’une semaine', async () => {
+    const c = await boot({ now: NOW, noHistory: true, localState: localState(), storage: { 'py-cal-view': 'wall' } });
+    try {
+      await enter(c, 'dash');
+      assert.ok(c.$('#heatmap .wall'), 'vue mémorisée au rechargement');
+      c.$('#heatmap .cal-d[data-date="2026-09-29"]').click();
+      assert.match(c.$('#calDetail').textContent, /mardi 29 septembre 2026/i);
+      c.$('#heatmap .cal').dispatchEvent(new c.w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+      assert.equal(c.$('#heatmap .cal-d.sel').dataset.date, '2026-09-22');
+      c.$('#heatmap [data-week="2026-09-28"]').click();
+      assert.ok(!c.$('#heatmap .wall')); assert.equal(c.$('#heatmap .cal-title').textContent, 'septembre 2026');
+      assert.equal(c.$('#heatmap .cal-d.sel').dataset.date, '2026-09-28');
+    } finally { c.close(); }
+  });
+});

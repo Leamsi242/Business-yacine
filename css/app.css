@@ -484,7 +484,7 @@ h1 .mark svg{width:100%;height:100%;display:block}
 .cal-nav:hover{background:var(--surface-2)}
 .cal-sum{margin:12px 0 16px;color:var(--ink-body)}
 .cal{container-type:inline-size;display:grid;gap:6px}
-.cal-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) minmax(72px,.9fr);gap:6px}
+.cal-row{display:grid;grid-template-columns:34px repeat(7,minmax(0,1fr)) minmax(72px,.9fr);gap:6px}
 .cal-wd span{font-size:12px;font-weight:600;color:var(--ink-2);text-align:left;padding:0 8px}
 .cal-d{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:84px;padding:8px 8px 12px;border:0;border-radius:10px;background:var(--surface-2);color:var(--ink);font:inherit;text-align:left;cursor:pointer;overflow:hidden;transition:background var(--t),box-shadow var(--t)}
 .cal-d:hover{box-shadow:inset 0 0 0 1px var(--ink-3)}
@@ -512,7 +512,8 @@ h1 .mark svg{width:100%;height:100%;display:block}
 .cal-detail h3::first-letter{text-transform:uppercase}
 .cal-detail .btn{margin-top:14px}
 @container (max-width:560px){
-  .cal-row{grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .cal-row{grid-template-columns:26px repeat(7,minmax(0,1fr));gap:4px}
+  .cal-wn{font-size:11px}
   .cal-row .cal-wk{display:none}
   .cal-d{min-height:58px;padding:6px 5px 9px;border-radius:8px}
   .cal-d .p{display:none}
@@ -521,3 +522,72 @@ h1 .mark svg{width:100%;height:100%;display:block}
   .cal-d.pending .amt::after{content:"…";font-size:14px}
   .cal-wd span{padding:0 4px;font-size:11px}
 }
+
+/* Numéro de semaine ISO (« S41 ») en tête de chaque ligne du mois. */
+.cal-wn{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.cal-wd .cal-wn{justify-content:center}
+/* Bascule « Mois / Semaines » : contrôle segmenté en pilule. */
+.cal-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--surface-2);gap:2px}
+.seg button{min-height:38px;padding:0 16px;border:0;border-radius:999px;background:none;color:var(--ink-2);font:500 14px var(--sans);cursor:pointer;transition:background var(--t),color var(--t)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+@media (pointer:coarse){.seg button{min-height:44px}}
+.cal-title-wall{text-transform:none}
+/* ---------- Mur des semaines : une ligne par semaine, la plus récente en haut ----------
+   Numéro et dates de la semaine, sept cases teintées selon le net (texte toujours lisible : blanc sur les teintes
+   foncées), puis le total et une barre vers l'objectif hebdomadaire. */
+.wall{display:grid;gap:6px}
+.wall-row{display:grid;grid-template-columns:120px minmax(0,1fr) 170px;gap:12px;align-items:center}
+.wall-head{font-size:12px;font-weight:600;color:var(--ink-2)}
+.wall-head .wall-days span{text-align:center}
+.wall-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.wall-wk{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 10px;border:0;border-radius:10px;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-height:44px;transition:background var(--t)}
+.wall-wk:hover{background:var(--surface-2)}
+.wall-wk b{font-size:15px;font-weight:600}
+.wall-wk span{font-size:12px;color:var(--ink-2)}
+.wall-row.cur .wall-wk b{color:var(--brand)}
+.wall .cal-d{min-height:48px;padding:5px 6px;align-items:center;justify-content:center;gap:0;border-radius:8px;text-align:center}
+.wall .cal-d .n{font-size:10.5px;font-weight:500}
+.wall .cal-d .amt{font-size:14px;font-weight:600}
+.wall .cal-d.work{box-shadow:none}
+.wall .cal-d.lv1{background:var(--seq1)}
+.wall .cal-d.lv2{background:var(--seq2)}
+.wall .cal-d.lv3{background:var(--seq4)}
+.wall .cal-d.lv4{background:var(--seq5)}
+.wall .cal-d.lv3 .n,.wall .cal-d.lv3 .amt,.wall .cal-d.lv4 .n,.wall .cal-d.lv4 .amt{color:var(--bg)}
+.wall .cal-d.lv1 .n,.wall .cal-d.lv2 .n{color:var(--ink-body)}
+.wall .cal-d.pending{background:var(--warn-bg,#FFF4E0)}
+.wall .cal-d.pending .amt{font-size:14px;color:var(--warn-text,#8F5600)}
+.wall .cal-d.today{box-shadow:inset 0 0 0 2px var(--brand)}
+.wall .cal-d.sel{outline:3px solid var(--brand);outline-offset:1px;box-shadow:none}
+.wall .cal-d.sel .n,.wall .cal-d.sel .amt{color:inherit}
+.wall .cal-d.sel.lv3 .n,.wall .cal-d.sel.lv3 .amt,.wall .cal-d.sel.lv4 .n,.wall .cal-d.sel.lv4 .amt{color:var(--bg)}
+.wall .cal-d.sel:not(.lv3):not(.lv4){background:var(--surface-2)}
+.wall .cal-d.sel.lv1{background:var(--seq1)}.wall .cal-d.sel.lv2{background:var(--seq2)}.wall .cal-d.sel.lv3{background:var(--seq4)}.wall .cal-d.sel.lv4{background:var(--seq5)}
+.wall-tot{display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.wall-tot b{font-size:15px;font-weight:600}
+.wall-tot span{font-size:12px;color:var(--ink-2)}
+.wall-tot.ok span:first-of-type{color:var(--good)}
+.wall-bar{display:block;height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden;margin-top:4px}
+.wall-bar i{display:block;height:100%;background:var(--ink)}
+.wall-tot.ok .wall-bar i{background:var(--good)}
+@container (max-width:640px){
+  .wall-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:8px 0;border-top:1px solid var(--rule)}
+  .wall-head{display:none}
+  .wall-wk{flex-direction:row;align-items:baseline;gap:8px;padding:4px 0;min-height:0}
+  .wall-days{grid-column:1/-1;grid-row:2}
+  .wall-tot{grid-row:1;grid-column:2;align-items:flex-end;text-align:right}
+  .wall-tot span{display:none}
+  .wall-tot .wall-bar{width:72px}
+  .wall .cal-d{min-height:44px;padding:4px 2px}
+  .wall .cal-d .amt{font-size:12px;letter-spacing:-.02em}
+}
+
+/* Correctifs : titre du mur en casse normale ; pas de double « … » ; « $ » masqué dans les petites cases du mois. */
+.card .cal-title.cal-title-wall{text-transform:none;text-align:left;min-width:0}
+.wall .cal-d.pending .amt::after{content:none}
+.wall .cal-d.pending .amt{font-size:14px}
+@container (max-width:560px){.cal-d .amt small{display:none}}
+/* Mur : un jour sans travail n'a pas de fond (simple contour), toute case pleine est une journée travaillée. */
+.wall .cal-d:not(.work){background:none;box-shadow:inset 0 0 0 1px var(--rule)}
+.wall .cal-d:not(.work).today{box-shadow:inset 0 0 0 2px var(--brand)}
