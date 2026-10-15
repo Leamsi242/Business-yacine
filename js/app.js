@@ -98,8 +98,8 @@
     const max = Math.max(o.goal || 0, ...pts.map(p => p.y)) * 1.08 || 1, bw = (W - pl - pr) / pts.length, y = v => pt + (Hh - pt - pb) * (1 - v / max);
     let s = `<svg class="chart" viewBox="0 0 ${W} ${Hh}">`;
     for (let i = 0; i <= 4; i++) { const v = max * i / 4; s += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
-    pts.forEach((p, i) => { const x = pl + i * bw + bw * 0.15, w = bw * 0.7; s += `<rect class="b ${i === pts.length - 1 ? 'cur' : ''}" x="${x}" y="${y(p.y)}" width="${w}" height="${Math.max(0, y(0) - y(p.y))}" rx="3"><title>Semaine du ${p.x} : ${money(p.y)} (${p.sub})</title></rect><text x="${x + w / 2}" y="${Hh - pb + 14}" text-anchor="middle">${p.x}</text>`; if (i === pts.length - 1) s += `<text class="direct" x="${x + w / 2}" y="${y(p.y) - 5}" text-anchor="middle">${money(p.y)}</text>`; });
-    if (o.goal) s += `<line class="goal" x1="${pl}" x2="${W - pr}" y1="${y(o.goal)}" y2="${y(o.goal)}"/><text x="${pl + 4}" y="${y(o.goal) - 5}" text-anchor="start">objectif ${money(o.goal)} / sem</text>`;
+    pts.forEach((p, i) => { const x = pl + i * bw + bw * 0.15, w = bw * 0.7; s += `<rect class="b ${i === pts.length - 1 ? 'cur' : ''}" x="${x}" y="${y(p.y)}" width="${w}" height="${Math.max(0, y(0) - y(p.y))}" rx="3"><title>Semaine du ${p.x} : ${money(p.y)} (${p.sub})</title></rect>${pts.length <= 8 || (pts.length - 1 - i) % 2 === 0 ? `<text x="${x + w / 2}" y="${Hh - pb + 14}" text-anchor="middle">${p.x}</text>` : ''}`; if (i === pts.length - 1) s += `<text class="direct" x="${x + w / 2}" y="${y(p.y) - 5}" text-anchor="middle">${money(p.y)}</text>`; });
+    if (o.goal) s += `<line class="goal" x1="${pl}" x2="${W - pr}" y1="${y(o.goal)}" y2="${y(o.goal)}"/><text class="goal-lab" x="${pl + 4}" y="${y(o.goal) - 6}" text-anchor="start">objectif ${money(o.goal)} / sem.</text>`;
     return s + '</svg>';
   }
   function lineChart(pts) {
@@ -110,7 +110,7 @@
     for (let i = 0; i <= 4; i++) { const v = min + (max - min) * i / 4; s += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}"/><text x="${pl - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v, 2)}</text>`; }
     s += `<path class="l" d="${pts.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.y).toFixed(1)).join(' ')}"/>`;
     const st = Math.ceil(pts.length / 7);
-    pts.forEach((p, i) => { s += `<circle class="pt" cx="${x(i)}" cy="${y(p.y)}" r="4"><title>${p.lab} : ${fmt(p.y, 2)} $/colis</title></circle>`; if ((i % st === 0 && pts.length - 1 - i >= st / 2) || i === pts.length - 1) s += `<text x="${x(i)}" y="${Hh - pb + 14}" text-anchor="middle">${p.x}</text>`; });
+    pts.forEach((p, i) => { s += `<circle class="pt" cx="${x(i)}" cy="${y(p.y)}" r="4"><title>${p.lab} : ${fmt(p.y, 2)} $/colis</title></circle>`; if ((i % st === 0 && pts.length - 1 - i >= st / 2) || i === pts.length - 1) s += `<text x="${x(i)}" y="${Hh - pb + 14}" text-anchor="${i === pts.length - 1 ? 'end' : 'middle'}">${p.x}</text>`; });
     const l = pts[pts.length - 1]; s += `<text class="direct" x="${x(pts.length - 1) - 6}" y="${y(l.y) - 8}" text-anchor="end">${fmt(l.y, 2)} $</text>`;
     return s + '</svg>';
   }
@@ -170,21 +170,25 @@
     const ex = S.days.find(d => d.date === date) || {};
     const v = id => $(id).value;
     const row = { date, parcels: v('#f_parcels') !== '' ? +v('#f_parcels') : (ex.parcels || 0), invoiced: v('#f_inv') !== '' ? +v('#f_inv') : (ex.invoiced || 0), km: v('#f_km') !== '' ? +v('#f_km') : (ex.km ?? null), fuel: v('#f_fuel') !== '' ? +v('#f_fuel') : (ex.fuel ?? null), loc: v('#f_loc') || ex.loc || null, note: v('#f_note').trim() || ex.note || null, source: ex.source === 'facture' ? 'facture' : 'saisie' };
-    try { await DB.upsertDay(row); toast('Journée du ' + date + ' enregistrée'); e.target.reset(); $('#f_date').value = window.PYU.today(); await refresh(); }
+    try { await DB.upsertDay(row); toast('Journée du ' + date + ' enregistrée'); e.target.reset(); $('#f_date').value = window.PYU.today(); $('#f_del').hidden = true; await refresh(); }
     catch (err) { toast('Enregistrement refusé : ' + err.message); }
   });
-  $('#f_date').addEventListener('change', () => { const ex = S.days.find(d => d.date === $('#f_date').value); if (!ex) return; $('#f_parcels').value = ex.parcels || ''; $('#f_inv').value = ex.invoiced || ''; $('#f_km').value = ex.km ?? ''; $('#f_fuel').value = ex.fuel ?? ''; $('#f_loc').value = ex.loc || ''; $('#f_note').value = ex.note || ''; });
+  $('#f_date').addEventListener('change', () => { const ex = S.days.find(d => d.date === $('#f_date').value); $('#f_del').hidden = !(ex && ex.driver); if (!ex) return; $('#f_parcels').value = ex.parcels || ''; $('#f_inv').value = ex.invoiced || ''; $('#f_km').value = ex.km ?? ''; $('#f_fuel').value = ex.fuel ?? ''; $('#f_loc').value = ex.loc || ''; $('#f_note').value = ex.note || ''; });
+  // Suppression immédiate mais réversible : la journée effacée peut être remise pendant six secondes.
+  async function deleteDay(date) {
+    const d = S.days.find(x => x.date === date); if (!d || !d.driver) return; const keep = DAY_COLS.reduce((o, k) => { if (d[k] !== undefined) o[k] = d[k]; return o; }, {});
+    try { await DB.deleteDay(d.date); await refresh(); toast('Journée du ' + fdate(d.date) + ' supprimée', { label: 'Annuler', run: async () => { try { await DB.upsertDay(keep); toast('Journée remise'); await refresh(); } catch (err) { toast(err.message); } } }); } catch (err) { toast(err.message); }
+  }
+  $('#f_del').onclick = async () => { const date = $('#f_date').value; $('#dayForm').reset(); $('#f_date').value = U.today(); $('#f_del').hidden = true; await deleteDay(date); };
   let logAll = false;
   const DAY_COLS = ['date', 'driver', 'parcels', 'invoiced', 'km', 'fuel', 'loc', 'note', 'source'];
   function renderLog() {
     $('#storageMode').textContent = DB.mode() === 'supabase' ? 'Données partagées (Supabase)' : 'Mode local : données gardées dans ce navigateur seulement';
     const all = S.days.slice().reverse(); const rows = logAll ? all : all.slice(0, 12);
-    $('#logTable').innerHTML = '<tr><th>Date</th><th class="hide-sm">Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">Km</th><th class="num">Essence</th><th class="hide-sm">Note</th><th></th></tr>' + rows.map(d => `<tr><td title="${d.date}">${fdate(d.date)}${d.source === 'saisie' ? ' <span class="pill good">saisie</span>' : ''}</td><td class="hide-sm">${esc(d.top && !d.loc ? d.top.slice(0, 2).map(t => t.name).join(', ') : locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num">${d.km != null ? d.km : '—'}</td><td class="num">${d.fuel != null ? money(d.fuel, 2) : '—'}</td><td class="small hide-sm">${esc(d.note || '')}</td><td>${d.driver ? `<button class="btn danger del" data-del="${d.date}" aria-label="Supprimer la journée du ${fdate(d.date)}"><span aria-hidden="true">×</span><span class="lbl"> Supprimer</span></button>` : ''}</td></tr>`).join('');
-    // Suppression immédiate mais réversible : la journée effacée peut être remise pendant six secondes.
-    $('#logTable').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-      const d = S.days.find(x => x.date === b.dataset.del); const keep = DAY_COLS.reduce((o, k) => { if (d[k] !== undefined) o[k] = d[k]; return o; }, {});
-      try { await DB.deleteDay(d.date); await refresh(); toast('Journée du ' + fdate(d.date) + ' supprimée', { label: 'Annuler', run: async () => { try { await DB.upsertDay(keep); toast('Journée remise'); await refresh(); } catch (err) { toast(err.message); } } }); } catch (err) { toast(err.message); }
-    });
+    $('#logTable').innerHTML = '<tr><th>Date</th><th class="hide-sm">Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num hide-sm">Km</th><th class="num">Essence</th><th class="hide-sm">Note</th><th class="hide-sm"></th></tr>' + rows.map(d => `<tr${d.driver ? ` data-day="${d.date}"` : ''}><td title="${d.date}">${fdate(d.date)}${d.source === 'saisie' ? ' <span class="pill good">saisie</span>' : ''}</td><td class="hide-sm">${esc(d.top && !d.loc ? d.top.slice(0, 2).map(t => t.name).join(', ') : locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num hide-sm">${d.km != null ? d.km : '—'}</td><td class="num">${d.fuel != null ? money(d.fuel) : '—'}</td><td class="small hide-sm">${esc(d.note || '')}</td><td class="hide-sm">${d.driver ? `<button class="btn danger del" data-del="${d.date}" aria-label="Supprimer la journée du ${fdate(d.date)}"><span aria-hidden="true">×</span><span class="lbl"> Supprimer</span></button>` : ''}</td></tr>`).join('');
+    // Toucher une journée la charge dans le formulaire (sur téléphone, c'est là que se trouve « Supprimer »).
+    $('#logTable').querySelectorAll('tr[data-day]').forEach(tr => tr.onclick = e => { if (e.target.closest('button')) return; $('#f_date').value = tr.dataset.day; $('#f_date').dispatchEvent(new Event('change')); $('#dayForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('#logTable').querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteDay(b.dataset.del));
     renderBackup();
     const more = $('#logMore'); more.hidden = logAll || all.length <= 12; more.textContent = `Afficher les ${all.length} journées`;
     more.onclick = () => { logAll = true; renderLog(); };
@@ -196,6 +200,7 @@
     const text = DB.mode() === 'local' ? DB.exportLocal() : JSON.stringify({ exported_at: new Date().toISOString(), days: S.days.filter(d => d.driver).map(d => DAY_COLS.reduce((o, k) => (o[k] = d[k] ?? null, o), {})), invoices: S.invoices, goals: S.goals, savings: window.PYS ? window.PYS.goals : [] }, null, 1);
     download('pilote-yacine-' + U.today() + '.json', text); toast('Sauvegarde téléchargée');
   };
+  $('#restoreWrap').onclick = () => $('#restoreFile').click();
   $('#restoreFile').onchange = async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     const readText = file => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(file); });
@@ -315,7 +320,7 @@
         p.querySelector('[data-detail]').onclick = () => { goTab('map'); selectLoc(l.code); };
       },
       onLeave: () => { $('#worldLoc').hidden = true; } });
-    $('#destSel').innerHTML = '<option value="">— choisir une destination —</option>' + S.locstats.filter(l => l.lat).sort((a, b) => b.ppp - a.ppp).map(l => `<option value="${esc(l.code)}">${esc(l.name)} · ${fmt(l.ppp, 2)} $/colis</option>`).join('');
+    $('#destSel').innerHTML = '<option value="">Choisir une destination</option>' + S.locstats.filter(l => l.lat).sort((a, b) => b.ppp - a.ppp).map(l => `<option value="${esc(l.code)}">${esc(l.name)} · ${fmt(l.ppp, 2)} $/colis</option>`).join('');
   }
   function stopWorld() { if (worldOn && window.PY_WORLD) { window.PY_WORLD.stop(); worldOn = false; } }
   $('#destSel').onchange = e => { if (e.target.value) { window.PY_WORLD.driveTo(e.target.value); $('#worldHint').textContent = 'Conduite automatique vers ' + e.target.selectedOptions[0].textContent.split(' · ')[0] + ' (toucher une flèche reprend la main)'; } };
@@ -338,6 +343,26 @@
       requestAnimationFrame(step);
     });
   }
+
+  /* ---------- Fenêtres (brief, soir, épargne) : focus, Tab, Échap ---------- */
+  // À l'ouverture, le focus entre dans la fenêtre et y reste (Tab boucle) ; Échap ferme comme « Plus tard »,
+  // « Fermer » ou « Annuler » ; à la fermeture, le focus revient au bouton qui l'avait ouverte.
+  const FOCUSABLE = 'button:not([disabled]):not([hidden]), [href], input:not([type=hidden]):not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+  const CLOSE = { brief: '#briefSkip', evening: '#evClose', modal: '[id$="_cancel"]' };
+  Object.keys(CLOSE).forEach(id => {
+    const el = document.getElementById(id); if (!el) return; let back = null;
+    new MutationObserver(() => {
+      if (!el.hidden && !el._open) { el._open = true; back = document.activeElement; setTimeout(() => { const f = [...el.querySelectorAll(FOCUSABLE)].find(x => x.offsetParent !== null || !x.closest('[hidden]')); if (f && !el.contains(document.activeElement)) f.focus(); }, 0); }
+      else if (el.hidden && el._open) { el._open = false; if (back && document.contains(back)) back.focus(); }
+    }).observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { const c = el.querySelector(CLOSE[id]); if (c) { e.preventDefault(); c.click(); } return; }
+      if (e.key !== 'Tab') return;
+      const fs = [...el.querySelectorAll(FOCUSABLE)].filter(x => !x.closest('[hidden]')); if (!fs.length) return;
+      const first = fs[0], last = fs[fs.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+  });
 
   /* ---------- Navigation, connexion, init ---------- */
   function goTab(v) {

@@ -56,7 +56,7 @@ describe('grille tarifaire', () => {
     const t = a.issues.find(i => /Grille tarifaire/.test(i.t));
     assert.ok(t, 'la baisse doit être détectée : ' + texts(a));
     assert.equal(t.sev, 'bad'); assert.match(t.t, /30 colis \(0 hausses, 1 baisses/);
-    assert.match(t.t, /ZONE_G 2\.0 lb : 2\.00 → 1\.90/);
+    assert.match(t.t, /ZONE_G 2\.0 lb : de 2\.00 à 1\.90/);
   });
   test('hausse de tarif sur une demi-livre : point à vérifier', () => {
     const ref = inv.TARIFFS['ZONE_M|0.5'];

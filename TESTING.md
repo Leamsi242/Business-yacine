@@ -29,13 +29,13 @@ bibliothèques tierces, les fichiers de données (`data.js`, `tariffs.js`).
           Fumée sur le site publié        1 parcours, après chaque déploiement
        Bout en bout (Playwright, Chromium)  17 tests, ordinateur et téléphone, ~30 s
     Contrat Supabase (PostgREST direct)       7 tests, réseau requis, ~1 s
- Unitaires et parcours jsdom (node:test)       90 tests, aucune dépendance réseau, ~10 s
+ Unitaires et parcours jsdom (node:test)      120 tests, aucune dépendance réseau, ~15 s
 ```
 
 | Couche | Outil | Fichiers | Ce qu'elle vérifie |
 |---|---|---|---|
 | Unitaire pur | `node:test` + `vm` (`tests/helpers/sandbox.js`) | `tests/unit/pdf-import`, `audit`, `db-local` | logique sans DOM : parseur, audit, couche de données locale |
-| Composant et parcours | `node:test` + jsdom (`tests/helpers/dom.js`) | `tests/unit/core`, `savings`, `dates`, `flows` | `index.html` chargé avec les vrais scripts, horloge figée, GPS et pdf.js simulés |
+| Composant et parcours | `node:test` + jsdom (`tests/helpers/dom.js`) | `tests/unit/core`, `savings`, `dates`, `flows`, `numbers`, `road`, `finish`, `security` | `index.html` chargé avec les vrais scripts, horloge figée, GPS et pdf.js simulés |
 | Contrat | `node:test` + `fetch` | `tests/contract/supabase` | RLS par PIN, table `config` illisible, écriture refusée, tables des migrations présentes |
 | Bout en bout | `@playwright/test` | `tests/e2e/smoke`, `import` | vrai navigateur : brief, shift GPS émulé, saisie du soir, rechargement, import d'un vrai PDF, mobile |
 | Post-déploiement | Playwright contre `PY_BASE_URL` | `tests/e2e/smoke` | le site publié sert les bons fichiers et fonctionne |

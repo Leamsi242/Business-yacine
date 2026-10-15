@@ -17,11 +17,14 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 - Données : Supabase (projet `uawvvuzwkfpdzlgxlpdg`) avec sécurité par PIN (RLS, fonction `check_pin()` qui lit
   l'en-tête `x-pin`). La clé anonyme dans `js/config.js` est publique par conception ; ne jamais mettre la clé
   `service_role` dans le site. Sans configuration, le site tourne en mode local (`localStorage`, clé `pilote-yacine-v2`).
-- Schéma dans `supabase/schema.sql` (migrations 2 et 3 incluses). Toute nouvelle colonne demande une migration
+- Schéma dans `supabase/schema.sql` (migrations 2 à 4 incluses ; la 4 impose un PIN de 10 caractères au moins). Toute nouvelle colonne demande une migration
   que l'utilisateur colle dans Supabase > SQL Editor ; le test « contrat de schéma » refuse un objet envoyé avec une
   colonne inconnue. Ce qui ne s'enregistre pas (ex. `meta.sig`, `meta.driver_code`) ne va pas dans `inv` ni `parcels`.
-- Bibliothèques CDN : Leaflet 1.9.4, supabase-js 2.45.4, pdf.js 3.11.174 (ne pas changer de version sans
-  mettre à jour le worker et `tests/e2e/fixtures.js`). Polices Google Overpass et Overpass Mono.
+- Bibliothèques CDN (jsDelivr, fichiers npm tels quels, avec `integrity` sha384) : Leaflet 1.9.4, supabase-js 2.45.4
+  (`dist/umd/supabase.js`), pdfjs-dist 3.11.174. Changer de version demande de recalculer l'empreinte
+  (`openssl dgst -sha384 -binary fichier | openssl base64 -A` sur le fichier du paquet npm) et de mettre à jour le
+  worker et `tests/e2e/fixtures.js`. Polices Google Overpass et Overpass Mono.
+- Une base configurée mais injoignable affiche le bandeau `#netBanner` ; ne jamais retomber en local en silence.
 
 ## Règles du code
 
@@ -31,7 +34,12 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 - Montants affichés via `PYAPP.fmt` / `PYAPP.money` (fr-CA, espace insécable de milliers, `$` détaché).
 - Clé de la grille tarifaire : `PYU.tariffKey(zone, poids)` donne `ZONE_G|2.0` (une décimale), comme `js/tariffs.js`.
 - Part de Yacine : `PYAPP.share()` (0,75 chez le broker avec `cut` 0,25 ; 0,95 en indépendant).
-- Semaines du lundi au dimanche comme les factures Intelcom (`PYU.weekStart`).
+- Semaines du lundi au dimanche comme les factures Intelcom (`PYU.weekStart`). `byWeek` montre les semaines sans
+  travail ; les moyennes utilisent les semaines complètes (`PYAPP.recentWeeks`).
+- Série de semaines : toujours `PYAPP.streak()` (semaines calendaires, la semaine en cours compte si elle est réussie).
+- Moyenne de facturé par jour : toujours `PYU.avgInvoiced` (les journées saisies sans facturé en sont exclues).
+- Van : une seule épargne, le projet « van » de l'épargne ; `goals.van` est la mise de fonds exigée par le plan.
+  Dates d'atteinte par `PYS.project` (projection semaine par semaine) et `PYS.vanPlan`.
 - Aucune donnée réelle de Yacine dans le dépôt (public) : les factures de test viennent de
   `tests/helpers/invoice.js`. `js/data.js` ne contient que des agrégats par journée et par localité.
 - Style d'écriture (interface, documents, messages de commit) : français du Québec, guillemets « », apostrophes
@@ -52,7 +60,7 @@ design, lire la critique appliquée dans l'historique git (commit « Critique de
 ```
 npm ci                       # dépendances de test (jsdom, Playwright) ; le site n'a aucune dépendance d'exécution
 node tests/e2e/serve.js      # sert le site sur http://localhost:8787/
-npm run test:unit            # 90 tests, node:test + jsdom, 10 s
+npm run test:unit            # 120 tests, node:test + jsdom, 15 s
 npm run test:unit:coverage   # idem avec la couverture des scripts du site (seuil CI 75 %)
 npm run test:contract        # Supabase (réseau) ; PY_TEST_PIN=xxxx pour les cas avec PIN
 npx playwright install chromium && npm run test:e2e   # Chromium ordinateur et téléphone
@@ -64,7 +72,10 @@ un test sont dans `TESTING.md`. Toute correction de bug s'accompagne d'un test q
 ## En attente côté utilisateur
 
 - Ajouter le secret GitHub `PY_TEST_PIN` pour que la CI vérifie la connexion avec le bon PIN.
-- Changer le PIN Supabase s'il a circulé (table `config`, ligne 1).
+- Coller la migration 4 (fin de `supabase/schema.sql`) dans Supabase > SQL Editor, puis passer à un PIN long :
+  `update config set pin = 'phrase de passe' where id = 1;` (10 caractères au moins).
+- Décider du sort des données réelles encore dans le dépôt public (`js/data.js` : revenus jour par jour,
+  `js/tariffs.js` : grille Intelcom) : dépôt privé, ou déplacement dans Supabase derrière le PIN.
 - Fonctionnalités proposées non retenues pour l'instant : rappel du soir, rapport du dimanche par courriel, veille
   Kijiji pour la voiture, jauge de colis en cours de shift, mode hors ligne, badges de série, comparateur de coût
   d'usage d'une voiture, export comptable annuel, espace multi-chauffeurs (phase 2 du plan).

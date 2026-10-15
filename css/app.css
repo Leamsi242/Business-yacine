@@ -56,7 +56,8 @@ nav.tabs button{display:inline-flex;align-items:center;gap:8px;font:800 11.5px/1
 nav.tabs button svg{width:16px;height:16px;fill:currentColor}
 nav.tabs button:hover{color:var(--ink)}
 nav.tabs button[aria-selected="true"]{color:var(--sign-text);border-bottom-color:var(--sign-text)}
-nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--sign);outline-offset:2px}
+/* Focus clavier : jaune de chantier cerné de noir, visible sur le vert des panneaux, l'asphalte et le papier. */
+nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--warn);outline-offset:2px;box-shadow:0 0 0 5px #111}
 @media (max-width:700px){
   nav.tabs{position:fixed;left:0;right:0;bottom:0;top:auto;margin:0;border-radius:0;background:var(--asphalt);display:grid;grid-template-columns:repeat(7,1fr);padding:4px max(4px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px));z-index:40}
   nav.tabs button{flex-direction:column;gap:4px;padding:8px 1px 6px;font-size:8.5px;letter-spacing:.04em;color:#9ea59e;border-bottom:0}
@@ -75,7 +76,8 @@ nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:fo
   .tscroll table{min-width:560px}
   /* Tableaux du journal et des dernières journées : les colonnes secondaires cèdent la place sur téléphone. */
   .tscroll table.fit{min-width:0}
-  table.fit th,table.fit td{padding:9px 5px}
+  table.fit th,table.fit td{padding:9px 4px}
+  table.fit,table.fit td.num{font-size:12.5px}
   .hide-sm{display:none}
   .del .lbl{display:none}
   .card{padding:18px 16px}
@@ -161,6 +163,8 @@ td:first-child,th:first-child{white-space:nowrap}
 .chart circle.pt{fill:var(--ink);stroke:var(--paper);stroke-width:2}
 .chart line.goal{stroke:var(--warn);stroke-dasharray:6 5;stroke-width:2}
 .chart text.direct{fill:var(--ink);font-weight:700}
+/* Étiquette de l'objectif : un liseré couleur papier la détache des barres qu'elle croise. */
+.chart text.goal-lab{fill:var(--ink);font-weight:700;paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
 
 /* ---------- Panneau de destinations (classement des zones) ---------- */
 .rank{background:var(--sign);color:#fff;border-radius:6px;padding:10px 0;position:relative}
@@ -225,9 +229,10 @@ td:first-child,th:first-child{white-space:nowrap}
 .proj .ic{display:inline-grid;place-items:center;width:28px;height:22px;border-radius:2px;background:var(--ink);color:#fff;font:800 9.5px var(--sans);letter-spacing:.08em;vertical-align:middle;margin-right:4px}
 .proj.voiture .ic{background:var(--warn);color:#121412}.proj.van .ic{background:var(--sign)}.proj.impot .ic{background:var(--service)}.proj.urgence .ic{background:var(--stop)}
 .carline{background:var(--warn);color:#121412;border-radius:3px;padding:10px 12px;margin-top:10px}
-.hgrid{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
-.hcol{display:grid;grid-template-rows:repeat(7,12px);gap:3px}
-.hcol i{width:12px;height:12px;border-radius:1px;background:var(--seq1)}
+/* Le mur occupe toute la largeur de la carte : les cases grandissent avec elle (jusqu'à 900 px de large). */
+.hgrid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(9px,1fr);gap:3px;overflow-x:auto;padding-bottom:4px;max-width:900px}
+.hcol{display:grid;grid-template-rows:repeat(7,auto);gap:3px}
+.hcol i{width:100%;aspect-ratio:1;border-radius:1px;background:var(--seq1)}
 .hcol i.l1{background:var(--seq2)}.hcol i.l2{background:var(--seq3)}.hcol i.l3{background:var(--seq4)}.hcol i.l4{background:var(--seq5)}
 
 /* ---------- Bandeau de shift ---------- */
@@ -343,3 +348,5 @@ nav.tabs .more-sheet{display:contents}
 .btn.del{padding:6px 10px;min-width:44px}
 .backup{margin-top:14px;gap:8px;flex-wrap:wrap}
 .ev-date{max-width:220px;margin-bottom:6px}
+#logTable tr[data-day]{cursor:pointer}
+#logTable tr[data-day]:hover td{background:var(--field)}

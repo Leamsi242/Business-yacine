@@ -24,10 +24,10 @@
 
 <div id="landing" class="landing" hidden>
   <div class="inner">
-    <div class="sign" role="img" aria-label="Panneau Pilote Yacine : destinations et revenu par colis">
+    <div class="sign">
       <p class="eyebrow">Livraison Intelcom · Station DRUM · Centre-du-Québec</p>
       <h1>Pilote<br>Yacine</h1>
-      <ul class="dest" id="signDest"></ul>
+      <ul class="dest" id="signDest" aria-label="Destinations les mieux payées, revenu par colis"></ul>
     </div>
     <div class="landing-copy">
       <p class="lead">Chaque village livré est une destination. Chaque route est un choix qui change ce que la journée rapporte. Ici, Yacine voit ses chiffres, fixe son objectif du matin et garde le cap vers la voiture.</p>
@@ -35,7 +35,7 @@
         <button class="btn big" id="btnDrive">Prendre la route <kbd>Entrée</kbd></button>
         <button class="btn sec big" id="btnExplore">Explorer sans conduire</button>
       </div>
-      <p class="small">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d'un village pour voir ce qu'il rapporte.</p>
+      <p class="small">Flèches ou WASD pour conduire, joystick sur mobile. Approche-toi d’un village pour voir ce qu’il rapporte.</p>
     </div>
   </div>
   <div class="road"><div class="van-anim" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
@@ -77,7 +77,7 @@
   <div class="tiles" id="kpis"></div>
   <div id="carTile"></div>
   <div class="grid2">
-    <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne verte pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
+    <div class="card"><h2>Net par semaine</h2><p class="small muted">Part de Yacine après la commission du broker, avant essence. Ligne jaune pointillée : objectif hebdomadaire.</p><div id="chWeeks"></div></div>
     <div class="card"><h2>Revenu par colis</h2><p class="small muted">Facturé ÷ colis, par journée travaillée. Une route rurale éloignée se voit tout de suite.</p><div id="chPpp"></div></div>
   </div>
   <div class="card"><h2>Mur des semaines</h2><div id="heatmap"></div></div>
@@ -92,10 +92,10 @@
   <div class="mapwrap">
     <div>
       <div class="mapbox"><div id="map" role="img" aria-label="Carte des localités livrées autour de Drummondville"></div><div class="legend" id="legend"></div></div>
-      <p class="small muted">Taille du cercle : colis livrés. Couleur : revenu par colis, du clair au foncé. Clique sur un cercle pour le détail. Les colis importés depuis les factures PDF s'ajoutent automatiquement.</p>
+      <p class="small muted">Taille du cercle : colis livrés. Couleur : revenu par colis, du clair au foncé. Clique sur un cercle pour le détail. Les colis importés depuis les factures PDF s’ajoutent automatiquement.</p>
       <div class="row"><button class="btn sec" id="btnLocate">Me localiser</button></div>
       <div class="card" id="locDetail"><h2>Choisis une localité</h2><p class="muted">Clique sur un cercle de la carte ou sur une ligne du classement.</p></div>
-      <div class="card"><h2>Score de route</h2><p class="small muted">Avant d'accepter une route : colle les codes postaux de la feuille de route, le site estime le facturé, les km et le net après essence.</p>
+      <div class="card"><h2>Score de route</h2><p class="small muted">Avant d’accepter une route : colle les codes postaux de la feuille de route, le site estime le facturé, les km et le net après essence.</p>
         <form class="f" id="routeScore"><label class="fl" style="grid-column:1/-1">Codes postaux<textarea id="rs_codes" placeholder="J0H1A0 J0H1Z0 J0C1S0 G0P1B0 …" style="min-height:60px"></textarea></label><label class="fl">Nombre de colis<input type="number" id="rs_parcels" value="180" min="20"></label><button class="btn" type="submit">Évaluer</button></form>
         <div id="rs_out" style="margin-top:8px"></div></div>
     </div>
@@ -116,13 +116,13 @@
   <div class="grid2">
     <div class="card">
       <h2>Importer une facture Intelcom</h2>
-      <p class="small muted">Dépose le PDF « Delivery Invoice » de la semaine : les journées, le facturé et chaque colis (code postal, zone, poids, montant) sont extraits automatiquement. Les km et l'essence déjà saisis sont conservés.</p>
+      <p class="small muted">Dépose le PDF « Delivery Invoice » de la semaine : les journées, le facturé et chaque colis (code postal, zone, poids, montant) sont extraits automatiquement. Les km et l’essence déjà saisis sont conservés.</p>
       <label class="drop" id="pdfDrop"><span class="arrow" aria-hidden="true"></span><b>Déposer le PDF de la semaine</b><span>ou toucher pour choisir le fichier (plusieurs à la fois possible)</span><input type="file" id="pdfFile" accept="application/pdf" multiple></label>
-      <div id="pdfStatus" class="small" style="margin-top:8px"></div>
+      <div id="pdfStatus" class="small" style="margin-top:8px" aria-live="polite"></div>
     </div>
     <div class="card">
       <h2>Ajouter ou compléter une journée</h2>
-      <p class="small muted">Chaque soir, 30 secondes : km et essence surtout. Le facturé peut attendre l'import de la facture.</p>
+      <p class="small muted">Chaque soir, 30 secondes : km et essence surtout. Le facturé peut attendre l’import de la facture.</p>
       <form class="f" id="dayForm">
         <label class="fl">Date<input type="date" id="f_date" required></label>
         <label class="fl">Colis livrés<input type="number" id="f_parcels" min="0" step="1" placeholder="180"></label>
@@ -132,15 +132,16 @@
         <label class="fl">Zone principale<select id="f_loc"></select></label>
         <label class="fl">Note<input type="text" id="f_note" placeholder="route, incident, colis perdu…"></label>
         <button class="btn" type="submit">Enregistrer</button>
+        <button class="btn danger" type="button" id="f_del" hidden>Supprimer cette journée</button>
       </form>
     </div>
   </div>
-  <div class="card"><h2>Audit des factures</h2><p class="small muted">Chaque facture importée est recalculée : somme des colis, frais d'administration à 2 %, total, annulations, tarifs comparés à la grille de référence, journées manquantes.</p><div id="audits"></div></div>
+  <div class="card"><h2>Audit des factures</h2><p class="small muted">Chaque facture importée est recalculée : somme des colis, frais d’administration à 2 %, total, annulations, tarifs comparés à la grille de référence, journées manquantes.</p><div id="audits"></div></div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Journées enregistrées</h2><span class="small muted" id="storageMode"></span></div>
     <div class="tscroll"><table id="logTable" class="fit"></table></div>
     <div class="log-more"><button class="btn sec" id="logMore" hidden>Afficher toutes les journées</button></div>
-    <div class="row backup"><button class="btn sec" type="button" id="btnExport">Sauvegarder mes données (fichier)</button><label class="btn sec" id="restoreWrap" hidden>Restaurer une sauvegarde<input type="file" id="restoreFile" accept="application/json,.json" hidden></label></div>
+    <div class="row backup"><button class="btn sec" type="button" id="btnExport">Sauvegarder mes données (fichier)</button><button class="btn sec" type="button" id="restoreWrap" hidden>Restaurer une sauvegarde</button><input type="file" id="restoreFile" accept="application/json,.json" hidden></div>
     <p class="small muted" id="backupHint"></p>
   </div>
 </section>
@@ -158,17 +159,17 @@
         <button class="btn" type="submit">Enregistrer</button>
       </form>
     </div>
-    <div class="card"><h2>Où j'en suis</h2><div id="goalDetail"></div></div>
+    <div class="card"><h2>Où j’en suis</h2><div id="goalDetail"></div></div>
   </div>
   <div class="grid2">
-    <div class="card" style="grid-column:1/-1"><h2>Mes projets d'épargne</h2><p class="small muted">Ce qui reste chaque semaine une fois l'essence, l'impôt, le loyer et la vie courante payés, réparti entre tes projets par priorité. La date prévue bouge avec le nombre de jours travaillés.</p><div id="savings"></div></div>
+    <div class="card" style="grid-column:1/-1"><h2>Mes projets d’épargne</h2><p class="small muted">Ce qui reste chaque semaine une fois l’essence, l’impôt, le loyer et la vie courante payés, réparti entre tes projets par priorité. La date prévue bouge avec le nombre de jours travaillés.</p><div id="savings"></div></div>
     <div class="card" style="grid-column:1/-1"><h2>Compte à rebours vers le van</h2><div id="vanCountdown"></div></div>
   </div>
   <div class="card">
     <h2>Les 4 étapes du plan</h2>
     <div class="tscroll"><table>
       <tr><th>Étape</th><th>Condition pour passer à la suivante</th><th>État</th></tr>
-      <tr><td><b>0. Consolider</b> (oct. 2026 à mars 2027)</td><td>12 semaines consécutives à 4 jours ou plus, 8 000 $ d'épargne van, Visa sous 30 %</td><td id="st0"></td></tr>
+      <tr><td><b>0. Consolider</b> (oct. 2026 à mars 2027)</td><td>12 semaines consécutives à 4 jours ou plus, 8 000 $ d’épargne van, Visa sous 30 %</td><td id="st0"></td></tr>
       <tr><td><b>1. Indépendant</b> (2027)</td><td>Van B (10 à 14 k$) remboursé ou 6 paiements sans retard, 216 jours facturés sur 12 mois</td><td id="st1"></td></tr>
       <tr><td><b>2. Premier chauffeur</b> (2028)</td><td>Chauffeur stable 6 mois, marge broker 700 $ par mois par van</td><td id="st2"></td></tr>
       <tr><td><b>3. Petite flotte</b> (2029 à 2030)</td><td>3 à 5 vans, marge flotte 2 000 $ par mois, occupation 85 %</td><td id="st3"></td></tr>
@@ -185,7 +186,7 @@
         <label class="sl">Facturé par jour ($) <output id="o_rev"></output><input type="range" id="s_rev" min="250" max="600" step="10" value="367"></label>
         <label class="sl">Km par jour (route + navette) <output id="o_km"></output><input type="range" id="s_km" min="150" max="450" step="10" value="350"></label>
         <label class="sl">Consommation (L/100 km) <output id="o_l"></output><input type="range" id="s_l" min="7" max="16" step="0.5" value="10"></label>
-        <label class="sl">Prix de l'essence ($/L) <output id="o_fuel"></output><input type="range" id="s_fuel" min="1.4" max="2.3" step="0.05" value="1.9"></label>
+        <label class="sl">Prix de l’essence ($/L) <output id="o_fuel"></output><input type="range" id="s_fuel" min="1.4" max="2.3" step="0.05" value="1.9"></label>
         <label class="sl">Commission du broker (%) <output id="o_cut"></output><input type="range" id="s_cut" min="10" max="40" step="1" value="25"></label>
         <label class="sl">Prix du van taxes incluses ($) <output id="o_van"></output><input type="range" id="s_van" min="4000" max="26000" step="500" value="13800"></label>
         <label class="sl">Coûts fixes indépendant par mois ($) <output id="o_fix"></output><input type="range" id="s_fix" min="300" max="1200" step="25" value="650"></label>
@@ -204,7 +205,7 @@
   </div>
 </section>
 </div>
-<div class="overlay brief" id="brief" hidden>
+<div class="overlay brief" id="brief" role="dialog" aria-modal="true" aria-label="Brief du matin" hidden>
   <div class="panel">
     <div class="road-strip"><div class="van-anim mini" aria-hidden="true"><span class="body"></span><span class="cab"></span><span class="wheel w1"></span><span class="wheel w2"></span></div></div>
     <div class="body" id="briefBody"></div>
@@ -212,7 +213,7 @@
     <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn sec" id="briefPrev">Précédent</button><div class="row"><button class="btn sec" id="briefSkip">Plus tard</button><button class="btn big" id="briefNext">Suivant</button></div></div>
   </div>
 </div>
-<div class="overlay" id="evening" hidden>
+<div class="overlay" id="evening" role="dialog" aria-modal="true" aria-label="Saisie du soir" hidden>
   <form class="panel" id="eveningForm">
     <p class="eyebrow" id="ev_eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c’est fait</h2>
     <p class="small muted" id="ev_goal"></p>
@@ -228,7 +229,7 @@
     <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn sec" type="button" id="evClose">Fermer</button><button class="btn big" type="submit">Enregistrer</button></div>
   </form>
 </div>
-<div class="overlay" id="modal" hidden><div class="panel"></div></div>
+<div class="overlay" id="modal" role="dialog" aria-modal="true" aria-label="Épargne" hidden><div class="panel"></div></div>
 <div class="toast" id="toast" role="status"></div>
 
 <!-- Fichiers servis tels quels depuis npm : l'empreinte « integrity » bloque toute copie modifiée (le PIN passe par ces scripts). -->

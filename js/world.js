@@ -42,7 +42,9 @@
   function stop() { cancelAnimationFrame(raf); raf = null; window.removeEventListener('resize', resize); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); }
   function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); const r = cv.getBoundingClientRect(); cv.width = r.width * dpr; cv.height = r.height * dpr; }
   const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right', z: 'up', q: 'left', Z: 'up', Q: 'left' };
-  function kd(e) { const k = KEYS[e.key]; if (k) { keys[k] = true; auto = null; e.preventDefault(); } }
+  // Les touches de conduite ne doivent pas voler les lettres tapées dans un champ (note, montant).
+  const typing = e => { const t = e.target; return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)); };
+  function kd(e) { if (typing(e)) return; const k = KEYS[e.key]; if (k) { keys[k] = true; auto = null; e.preventDefault(); } }
   function ku(e) { const k = KEYS[e.key]; if (k) keys[k] = false; }
   function setJoystick(x, y, on) { joy = { x, y, on }; if (on) auto = null; }
   function driveTo(code) { const l = locs.find(x => x.code === code); if (l) auto = { x: W.x(l.lon), y: W.y(l.lat), code }; }

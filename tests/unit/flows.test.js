@@ -37,7 +37,7 @@ describe('une journée de Yacine', () => {
     assert.equal(c.$('#brief').hidden, false);
     assert.equal(c.$('#briefDots').children.length, 4);
     assert.match(c.$('#briefBody').textContent, /Bonjour Yacine/);
-    assert.match(c.$('#briefBody').textContent.replace(/\u00a0/g, ' '), /Ma voiture : 0 \$ sur 8 000 \$\. Aujourd'hui rapproche la voiture d'environ 129 \$, il reste 62 journées/, 'la voiture apparaît dès le premier écran');
+    assert.match(c.$('#briefBody').textContent.replace(/\u00a0/g, ' '), /Ma voiture : 0 \$ sur 8 000 \$\. Aujourd’hui rapproche la voiture d’environ 129 \$, il reste 62 journées/, 'la voiture apparaît dès le premier écran');
     c.$('#briefNext').click(); await c.tick(5);
     c.$('#briefBody').querySelector('[data-route="loin"]').click(); await c.tick(5);
     assert.ok(c.$('#briefBody [data-route="loin"]').classList.contains('on'));

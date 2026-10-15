@@ -24,7 +24,7 @@
     const best = S.locstats.filter(l => l.n >= 40).sort((a, b) => b.ppp - a.ppp).slice(0, 3);
     const suggested = wk.days >= Math.floor(S.goals.days) ? 'rural' : 'loin';
     let carLine = '';
-    try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline"><b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd'hui rapproche la voiture d'environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
+    try { if (window.PYS) { await window.PYS.load(); const car = window.PYS.goals.find(g => g.kind === 'voiture'); if (car && +car.target > +car.saved) { const cap = window.PYS.capacity(); const alloc = window.PYS.allocate(cap.free); const perDay = (alloc[car.id] || 0) / Math.max(1, cap.dpw); const left = +car.target - +car.saved; carLine = `<p class="carline"><b>${A().esc(car.name)}</b> : ${money(+car.saved)} sur ${money(+car.target)}. Aujourd’hui rapproche la voiture d’environ <b>${money(perDay)}</b>${perDay > 0 ? ', il reste ' + Math.ceil(left / perDay) + ' journées de travail' : ''}.</p>`; } } } catch (e) {}
     brief.route = brief.route || suggested;
     // Chaque écran est une fonction : le rendu reflète le choix courant (route sélectionnée, objectif).
     const slides = [
@@ -32,7 +32,7 @@
        <p class="lead">Cette semaine : <b>${wk.days} jour${wk.days > 1 ? 's' : ''}</b> sur ${fmt(S.goals.days, 1)} visés, <b>${money(wk.inv * sh)}</b> net déjà facturés. Série en cours : <b>${streak} semaine${streak > 1 ? 's' : ''}</b> réussie${streak > 1 ? 's' : ''} (cible 12 pour la phase 1).</p>
        <div class="bar"><i style="width:${Math.min(100, 100 * wk.days / S.goals.days)}%"></i></div>
        <p class="small muted">Ta moyenne : ${money(avg)} facturés par jour, soit ${money(avg * sh)} net avant essence.</p>${carLine}`,
-      () => `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd'hui ?</h2>
+      () => `<p class="eyebrow">Choix n° 1</p><h2>Quelle route aujourd’hui ?</h2>
        <div class="choices">${Object.entries(ROUTE_TYPES).map(([k, r]) => `<button class="choice ${brief.route === k ? 'on' : ''}" data-route="${k}"><b>${r.label}</b><span>${r.desc}</span><em>${fmt(r.ppp, 2)} $/colis · 180 colis ≈ ${money(r.ppp * 180)} facturés, ${money(r.ppp * 180 * sh)} net</em>${k === suggested ? '<i class="pill good">Conseillée</i>' : ''}</button>`).join('')}</div>
        <p class="small muted">Si on te propose ${best.map(l => l.name).join(', ')}, dis oui : ce sont tes zones les mieux payées.</p>`,
       () => `<p class="eyebrow">Choix n° 2</p><h2>Ton objectif du jour</h2>
@@ -42,7 +42,7 @@
       () => `<p class="eyebrow">Avant de partir</p><h2>Les trois réflexes</h2>
        <div class="checks">
         <label><input type="checkbox" data-ck="photo" ${brief.checklist.photo ? 'checked' : ''}> Photo de chaque dépôt (un colis perdu peut être déduit en entier)</label>
-        <label><input type="checkbox" data-ck="fuel" ${brief.checklist.fuel ? 'checked' : ''}> Garder le reçu d'essence pour la saisie du soir</label>
+        <label><input type="checkbox" data-ck="fuel" ${brief.checklist.fuel ? 'checked' : ''}> Garder le reçu d’essence pour la saisie du soir</label>
         <label><input type="checkbox" data-ck="gps" ${brief.checklist.gps !== false ? 'checked' : ''}> Compter mes kilomètres avec le GPS pendant le shift</label>
        </div>
        <p class="small muted">Le GPS reste sur ton téléphone : seuls les kilomètres cumulés sont enregistrés, jamais le trajet.</p>`
@@ -140,14 +140,14 @@
     const sumAmt = parcels.reduce((a, p) => a + p.amt, 0);
     if (Math.abs(sumAmt - inv.base) > 0.5) issues.push({ sev: 'bad', t: `Somme des colis (${sumAmt.toFixed(2)} $) différente de la base facturée (${inv.base.toFixed(2)} $)` }); else ok.push('Somme des colis = base facturée');
     const expAdmin = Math.round((inv.base + inv.fsc) * 0.02 * 100) / 100;
-    if (Math.abs(expAdmin - inv.admin) > 0.05) issues.push({ sev: 'warn', t: `Frais d'administration ${inv.admin.toFixed(2)} $ au lieu de 2 % attendus (${expAdmin.toFixed(2)} $)` }); else ok.push('Frais d’administration à 2 %');
+    if (Math.abs(expAdmin - inv.admin) > 0.05) issues.push({ sev: 'warn', t: `Frais d’administration ${inv.admin.toFixed(2)} $ au lieu de 2 % attendus (${expAdmin.toFixed(2)} $)` }); else ok.push('Frais d’administration à 2 %');
     const expTotal = inv.base + inv.fsc - inv.admin - inv.cancel;
     if (Math.abs(expTotal - inv.total) > 0.05) issues.push({ sev: 'bad', t: `Total facture ${inv.total.toFixed(2)} $ au lieu de ${expTotal.toFixed(2)} $ (base + carburant − admin − annulations)` }); else ok.push('Total facture cohérent');
     if (inv.cancel > 0) issues.push({ sev: 'warn', t: `Annulations déduites : ${inv.cancel.toFixed(2)} $ (vérifier la dernière page de la facture)` });
     // tarifs vs référence
     const changed = {}; let nChanged = 0;
     parcels.forEach(p => { const k = window.PYU.tariffKey(p.zone, p.wt); const ref = T[k]; if (ref != null && Math.abs(ref - p.amt) > 0.005) { nChanged++; changed[k] = changed[k] || { ref, now: p.amt, n: 0 }; changed[k].n++; } });
-    if (nChanged) { const ex = Object.entries(changed).sort((a, b) => b[1].n - a[1].n).slice(0, 4).map(([k, v]) => `${k.replace('|', ' ')} lb : ${v.ref.toFixed(2)} → ${v.now.toFixed(2)} $ (${v.n})`).join(' ; '); const up = Object.values(changed).filter(v => v.now > v.ref).length, down = Object.values(changed).filter(v => v.now < v.ref).length; issues.push({ sev: down > up ? 'bad' : 'warn', t: `Grille tarifaire différente de la référence sur ${nChanged} colis (${up} hausses, ${down} baisses de tarif). Exemples : ${ex}` }); } else ok.push('Tarifs conformes à la grille de référence');
+    if (nChanged) { const ex = Object.entries(changed).sort((a, b) => b[1].n - a[1].n).slice(0, 4).map(([k, v]) => `${k.replace('|', ' ')} lb : de ${v.ref.toFixed(2)} à ${v.now.toFixed(2)} $ (${v.n})`).join(' ; '); const up = Object.values(changed).filter(v => v.now > v.ref).length, down = Object.values(changed).filter(v => v.now < v.ref).length; issues.push({ sev: down > up ? 'bad' : 'warn', t: `Grille tarifaire différente de la référence sur ${nChanged} colis (${up} hausses, ${down} baisses de tarif). Exemples : ${ex}` }); } else ok.push('Tarifs conformes à la grille de référence');
     // journées
     const invDates = new Set(days.map(d => d.date));
     (journalDays || []).filter(d => d.date >= inv.from_date && d.date <= inv.to_date && d.source === 'saisie' && d.parcels >= 20).forEach(d => { if (!invDates.has(d.date)) issues.push({ sev: 'bad', t: `Journée saisie le ${d.date} (${d.parcels} colis) absente de la facture` }); });

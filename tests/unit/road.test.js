@@ -22,12 +22,23 @@ describe('journal', () => {
       await c.until(() => c.w.PYAPP.S.days.find(d => d.date === '2026-10-08')); await c.tick(50);
     } finally { c.close(); }
   });
+  test('toucher une journée la charge dans le formulaire, qui propose de la supprimer', async () => {
+    const c = await boot({ now: NOW, noHistory: true, localState: localState() });
+    try {
+      await enter(c, 'log'); assert.equal(c.$('#f_del').hidden, true);
+      c.$('#logTable tr[data-day="2026-10-07"] td').click();
+      assert.equal(c.$('#f_date').value, '2026-10-07'); assert.equal(c.$('#f_km').value, '300'); assert.equal(c.$('#f_del').hidden, false);
+      c.$('#f_del').click(); await c.until(() => !saved(c).days.find(d => d.date === '2026-10-07'));
+      await c.until(() => c.$('#toast button')); assert.equal(c.$('#f_del').hidden, true);
+      await c.tick(50);
+    } finally { c.close(); }
+  });
   test('sur téléphone, les colonnes secondaires sont marquées pour céder la place', async () => {
     const c = await boot({ now: NOW, noHistory: true, localState: localState() });
     try {
       await enter(c, 'log');
       assert.ok(c.$('#logTable').classList.contains('fit')); assert.ok(c.$('#lastDays').classList.contains('fit'));
-      assert.deepEqual([...c.$('#logTable tr').querySelectorAll('th.hide-sm')].map(t => t.textContent), ['Zone', 'Note']);
+      assert.deepEqual([...c.$('#logTable tr').querySelectorAll('th.hide-sm')].map(t => t.textContent), ['Zone', 'Km', 'Note', '']);
       assert.match(c.$('#logTable [data-del]').getAttribute('aria-label'), /Supprimer la journée du/);
     } finally { c.close(); }
   });
