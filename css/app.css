@@ -73,6 +73,11 @@ nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:fo
   .tiles .tile{padding:14px 14px 12px}
   .tiles .tile .val{font-size:26px}
   .tscroll table{min-width:560px}
+  /* Tableaux du journal et des dernières journées : les colonnes secondaires cèdent la place sur téléphone. */
+  .tscroll table.fit{min-width:0}
+  table.fit th,table.fit td{padding:9px 5px}
+  .hide-sm{display:none}
+  .del .lbl{display:none}
   .card{padding:18px 16px}
   .sign .dest li{font-size:14px}
 }
@@ -288,7 +293,9 @@ td:first-child,th:first-child{white-space:nowrap}
 /* ---------- Divers ---------- */
 .toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--asphalt);color:#fff;padding:10px 16px;border-radius:3px;font-size:13.5px;z-index:60;opacity:0;transition:opacity .2s;max-width:calc(100% - 32px)}
 @media (max-width:700px){.toast{bottom:calc(100px + env(safe-area-inset-bottom,0px))}}
-.toast.on{opacity:1}
+.toast{pointer-events:none;display:flex;align-items:center;gap:12px}
+.toast.on{opacity:1;pointer-events:auto}
+.toast button{background:none;border:0;color:var(--warn);font:inherit;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:8px 4px;min-height:44px;cursor:pointer}
 .tip{position:fixed;pointer-events:none;background:var(--paper);border-radius:3px;padding:6px 9px;font-size:12.5px;z-index:20;max-width:240px}
 h1 .live{display:inline-block;width:8px;height:8px;background:var(--sign)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -331,3 +338,8 @@ nav.tabs .more-sheet{display:contents}
 
 /* Bandeau d'alerte : base injoignable ou chargement raté. Rouge « arrêt », toujours visible en haut. */
 .net-banner { position: sticky; top: 0; z-index: 60; background: var(--stop); color: #fff; padding: 10px 16px; font-weight: 700; font-size: 14px; line-height: 1.4; text-align: center; }
+
+/* Suppression d'une journée : bouton net, cible tactile pleine ; sur téléphone, seule la croix reste. */
+.btn.del{padding:6px 10px;min-width:44px}
+.backup{margin-top:14px;gap:8px;flex-wrap:wrap}
+.ev-date{max-width:220px;margin-bottom:6px}

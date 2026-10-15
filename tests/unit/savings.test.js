@@ -122,7 +122,10 @@ describe('formulaires d’épargne', () => {
     assert.match(c.$('#savings').textContent, /Permis de classe 3/);
     c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_target').value = '1200'; await submit('#goalForm2');
     g = c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'); assert.equal(g.target, 1200);
-    c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_del').click(); await c.until(() => !c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'));
+    c.$(`[data-edit="${g.id}"]`).click(); c.$('#g2_del').click();
+    assert.ok(c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'), 'le premier appui demande seulement confirmation');
+    assert.match(c.$('#g2_del').textContent, /Confirmer/);
+    c.$('#g2_del').click(); await c.until(() => !c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'));
     assert.ok(!c.w.PYS.goals.find(x => x.name === 'Permis de classe 3'));
   });
   test('budget : loyer, fixes, vie courante, taux d’impôt', async () => {

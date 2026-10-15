@@ -76,7 +76,8 @@
 
   /* ===== Shift et GPS ===== */
   let geoWatch = null, shift = null;
-  function loadShift() { try { shift = JSON.parse(localStorage.getItem('py-shift') || 'null'); } catch (e) { shift = null; } if (shift && shift.date !== todayISO()) shift = null; }
+  // Un shift d'un autre jour (oublié la veille) est gardé : ses km attendent la saisie du soir de ce jour-là.
+  function loadShift() { try { shift = JSON.parse(localStorage.getItem('py-shift') || 'null'); } catch (e) { shift = null; } }
   function saveShift() { try { localStorage.setItem('py-shift', JSON.stringify(shift)); } catch (e) {} }
   function startShift(date) {
     if (!navigator.geolocation) { A().toast('Pas de GPS sur cet appareil'); return; }
@@ -89,7 +90,7 @@
     }, err => { A().toast('GPS refusé ou indisponible (' + err.message + ')'); }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
     renderShiftBar();
   }
-  function resumeShift() { loadShift(); if (shift && navigator.geolocation && geoWatch == null) { const s = shift; startShift(s.date); shift.km = s.km; shift.start = s.start; saveShift(); } renderShiftBar(); }
+  function resumeShift() { loadShift(); if (shift && shift.date === todayISO() && navigator.geolocation && geoWatch == null) { const s = shift; startShift(s.date); shift.km = s.km; shift.start = s.start; saveShift(); } renderShiftBar(); }
   async function endShift() {
     if (geoWatch != null) { navigator.geolocation.clearWatch(geoWatch); geoWatch = null; }
     const km = shift ? Math.round(shift.km) : 0, date = shift ? shift.date : todayISO();
@@ -99,8 +100,9 @@
   }
   function renderShiftBar() {
     const b = $('#shiftBar'); if (!shift) { b.hidden = true; return; }
-    b.hidden = false; const h = (Date.now() - shift.start) / 36e5;
-    b.innerHTML = `<span class="live"></span> Shift en cours · <b>${A().fmt(shift.km, 1)} km</b> · ${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')} <button class="btn" id="btnEndShift">Terminer et saisir</button>`;
+    b.hidden = false; const mins = Math.floor((Date.now() - shift.start) / 60000);
+    if (shift.date !== todayISO()) { const dd = new Date(shift.date + 'T12:00:00'); b.innerHTML = `Shift du ${DAYS_FR[dd.getDay()]} ${dd.getDate()} ${MONTHS_FR[dd.getMonth()]} pas terminé · <b>${A().fmt(shift.km, 1)} km</b> <button class="btn" id="btnEndShift">Terminer et saisir</button>`; }
+    else b.innerHTML = `<span class="live"></span> Shift en cours · <b>${A().fmt(shift.km, 1)} km</b> · ${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, '0')} <button class="btn" id="btnEndShift">Terminer et saisir</button>`;
     $('#btnEndShift').onclick = endShift;
   }
   setInterval(() => { if (shift) renderShiftBar(); }, 60000);
@@ -110,7 +112,9 @@
     date = date || todayISO(); const { S, money, fmt, share } = A();
     const ex = S.days.find(d => d.date === date) || {}; const sh = await DB.getShift(date).catch(() => null);
     const el = $('#evening'); el.hidden = false; document.body.classList.add('noscroll');
-    $('#ev_date').value = date; $('#ev_km').value = km || ex.km || ''; $('#ev_fuel').value = ex.fuel ?? ''; $('#ev_parcels').value = ex.parcels || (sh ? sh.goal_parcels : '') || ''; $('#ev_inv').value = ex.invoiced || '';
+    // Date modifiable (saisie après minuit, journée oubliée) : changer la date recharge ce qui existe pour ce jour.
+    $('#ev_date').value = date; $('#ev_date').max = todayISO(); $('#ev_date').onchange = () => { const v = $('#ev_date').value; if (v && v !== date) openEvening(v); };
+    $('#ev_km').value = km || ex.km || ''; $('#ev_fuel').value = ex.fuel ?? ''; $('#ev_parcels').value = ex.parcels || (sh ? sh.goal_parcels : '') || ''; $('#ev_inv').value = ex.invoiced || '';
     $('#ev_loc').innerHTML = '<option value="">—</option>' + S.localities.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(l => `<option value="${l.code}" ${ex.loc === l.code ? 'selected' : ''}>${l.name}</option>`).join('');
     const dd = new Date(date + 'T12:00:00'); $('#ev_eyebrow').textContent = 'Saisie du soir · ' + DAYS_FR[dd.getDay()] + ' ' + dd.getDate() + ' ' + MONTHS_FR[dd.getMonth()];
     $('#ev_goal').innerHTML = sh ? `Objectif du matin : <b>${sh.goal_parcels} colis</b>, ${money(sh.goal_net)} net (${ROUTE_TYPES[sh.route_type] ? ROUTE_TYPES[sh.route_type].label : ''}).` : 'Pas d’objectif fixé ce matin.';

@@ -6,7 +6,12 @@
   const money = (n, d = 0) => fmt(n, d) + ' $';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fdate = iso => { const d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', ''); };
-  const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._x); t._x = setTimeout(() => t.classList.remove('on'), 2600); };
+  // Message bref ; avec `action` ({ label, run }), un bouton (ex. « Annuler ») reste six secondes.
+  const toast = (m, action) => {
+    const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._x);
+    if (action) { const b = document.createElement('button'); b.type = 'button'; b.textContent = action.label; b.onclick = () => { t.classList.remove('on'); action.run(); }; t.appendChild(b); }
+    t._x = setTimeout(() => t.classList.remove('on'), action ? 6000 : 2600);
+  };
 
   // État chargé depuis la base
   let S = { days: [], goals: {}, localities: [], parcels: [], locstats: [], invoices: [] };
@@ -86,7 +91,7 @@
     $('#goalMini').innerHTML = `<div class="kv"><span>Net ${label}</span><b>${money(net)} / ${money(target)}</b></div><div class="bar"><i class="${pct >= 100 ? 'good' : ''}" style="width:${pct}%"></i></div>
       <p class="small muted" style="margin-top:8px">${remaining > 0 ? `Il manque ${money(remaining)}${daysLeft ? ` : environ ${daysLeft} journée${daysLeft > 1 ? 's' : ''} au rythme moyen` : ''}.` : 'Objectif atteint.'}</p>
 `;
-    $('#lastDays').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">$/colis</th></tr>' + days.slice(-8).reverse().map(d => `<tr><td title="${d.date}">${fdate(d.date)}</td><td>${esc(locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num">${d.parcels && d.invoiced > 0 ? fmt(d.invoiced / d.parcels, 2) : ''}</td></tr>`).join('');
+    $('#lastDays').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num hide-sm">$/colis</th></tr>' + days.slice(-8).reverse().map(d => `<tr><td title="${d.date}">${fdate(d.date)}</td><td>${esc(locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num hide-sm">${d.parcels && d.invoiced > 0 ? fmt(d.invoiced / d.parcels, 2) : ''}</td></tr>`).join('');
   }
   function barChart(pts, o) {
     const W = 560, Hh = 220, pl = 44, pr = 10, pt = 14, pb = 34; if (!pts.length) return '<p class="muted small">Pas encore de données.</p>';
@@ -170,14 +175,38 @@
   });
   $('#f_date').addEventListener('change', () => { const ex = S.days.find(d => d.date === $('#f_date').value); if (!ex) return; $('#f_parcels').value = ex.parcels || ''; $('#f_inv').value = ex.invoiced || ''; $('#f_km').value = ex.km ?? ''; $('#f_fuel').value = ex.fuel ?? ''; $('#f_loc').value = ex.loc || ''; $('#f_note').value = ex.note || ''; });
   let logAll = false;
+  const DAY_COLS = ['date', 'driver', 'parcels', 'invoiced', 'km', 'fuel', 'loc', 'note', 'source'];
   function renderLog() {
     $('#storageMode').textContent = DB.mode() === 'supabase' ? 'Données partagées (Supabase)' : 'Mode local : données gardées dans ce navigateur seulement';
     const all = S.days.slice().reverse(); const rows = logAll ? all : all.slice(0, 12);
-    $('#logTable').innerHTML = '<tr><th>Date</th><th>Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">Km</th><th class="num">Essence</th><th>Note</th><th></th></tr>' + rows.map(d => `<tr><td title="${d.date}">${fdate(d.date)}${d.source === 'saisie' ? ' <span class="pill good">saisie</span>' : ''}</td><td>${esc(d.top && !d.loc ? d.top.slice(0, 2).map(t => t.name).join(', ') : locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${money(d.invoiced, 2)}</td><td class="num">${d.km != null ? d.km : '—'}</td><td class="num">${d.fuel != null ? money(d.fuel, 2) : '—'}</td><td class="small">${esc(d.note || '')}</td><td>${d.driver ? `<button class="btn danger" data-del="${d.date}" style="padding:6px 8px;min-height:0">Supprimer</button>` : ''}</td></tr>`).join('');
-    $('#logTable').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { try { await DB.deleteDay(b.dataset.del); toast('Journée supprimée'); await refresh(); } catch (err) { toast(err.message); } });
+    $('#logTable').innerHTML = '<tr><th>Date</th><th class="hide-sm">Zone</th><th class="num">Colis</th><th class="num">Facturé</th><th class="num">Km</th><th class="num">Essence</th><th class="hide-sm">Note</th><th></th></tr>' + rows.map(d => `<tr><td title="${d.date}">${fdate(d.date)}${d.source === 'saisie' ? ' <span class="pill good">saisie</span>' : ''}</td><td class="hide-sm">${esc(d.top && !d.loc ? d.top.slice(0, 2).map(t => t.name).join(', ') : locName(d.loc))}</td><td class="num">${d.parcels}</td><td class="num">${d.invoiced > 0 ? money(d.invoiced, 2) : '<span class="muted small">en attente</span>'}</td><td class="num">${d.km != null ? d.km : '—'}</td><td class="num">${d.fuel != null ? money(d.fuel, 2) : '—'}</td><td class="small hide-sm">${esc(d.note || '')}</td><td>${d.driver ? `<button class="btn danger del" data-del="${d.date}" aria-label="Supprimer la journée du ${fdate(d.date)}"><span aria-hidden="true">×</span><span class="lbl"> Supprimer</span></button>` : ''}</td></tr>`).join('');
+    // Suppression immédiate mais réversible : la journée effacée peut être remise pendant six secondes.
+    $('#logTable').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      const d = S.days.find(x => x.date === b.dataset.del); const keep = DAY_COLS.reduce((o, k) => { if (d[k] !== undefined) o[k] = d[k]; return o; }, {});
+      try { await DB.deleteDay(d.date); await refresh(); toast('Journée du ' + fdate(d.date) + ' supprimée', { label: 'Annuler', run: async () => { try { await DB.upsertDay(keep); toast('Journée remise'); await refresh(); } catch (err) { toast(err.message); } } }); } catch (err) { toast(err.message); }
+    });
+    renderBackup();
     const more = $('#logMore'); more.hidden = logAll || all.length <= 12; more.textContent = `Afficher les ${all.length} journées`;
     more.onclick = () => { logAll = true; renderLog(); };
   }
+  /* ---------- Sauvegarde ---------- */
+  function download(name, text) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0); }
+  $('#btnExport').onclick = () => {
+    // Mode local : tout le stockage du navigateur, restaurable. Mode Supabase : copie de ce qui est affiché.
+    const text = DB.mode() === 'local' ? DB.exportLocal() : JSON.stringify({ exported_at: new Date().toISOString(), days: S.days.filter(d => d.driver).map(d => DAY_COLS.reduce((o, k) => (o[k] = d[k] ?? null, o), {})), invoices: S.invoices, goals: S.goals, savings: window.PYS ? window.PYS.goals : [] }, null, 1);
+    download('pilote-yacine-' + U.today() + '.json', text); toast('Sauvegarde téléchargée');
+  };
+  $('#restoreFile').onchange = async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const readText = file => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = ko; r.readAsText(file); });
+    try { DB.importLocal(await readText(f)); toast('Sauvegarde restaurée'); await refresh(); } catch (err) { toast('Fichier refusé : ce n’est pas une sauvegarde de Pilote Yacine'); }
+    e.target.value = '';
+  };
+  function renderBackup() {
+    const local = DB.mode() === 'local'; $('#restoreWrap').hidden = !local;
+    $('#backupHint').textContent = local ? 'En mode local, tout vit dans ce navigateur : vider le cache efface tout. Une sauvegarde par semaine suffit.' : 'Copie de tes journées, factures et projets, à garder en lieu sûr.';
+  }
+
   (function dropZone() {
     const z = $('#pdfDrop'), inp = $('#pdfFile'); if (!z) return;
     ['dragenter', 'dragover'].forEach(ev => z.addEventListener(ev, e => { e.preventDefault(); z.classList.add('over'); }));

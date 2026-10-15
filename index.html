@@ -84,7 +84,7 @@
   <div class="grid2">
     <div class="card"><h2>Mission de la semaine</h2><div id="mission"></div></div>
     <div class="card"><h2>Objectifs du mois</h2><div id="goalMini"></div><h3>Prévision de fin de mois</h3><div id="forecast"></div></div>
-    <div class="card"><h2>Dernières journées</h2><div class="tscroll"><table id="lastDays"></table></div></div>
+    <div class="card"><h2>Dernières journées</h2><div class="tscroll"><table id="lastDays" class="fit"></table></div></div>
   </div>
 </section>
 
@@ -138,8 +138,10 @@
   <div class="card"><h2>Audit des factures</h2><p class="small muted">Chaque facture importée est recalculée : somme des colis, frais d'administration à 2 %, total, annulations, tarifs comparés à la grille de référence, journées manquantes.</p><div id="audits"></div></div>
   <div class="card">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Journées enregistrées</h2><span class="small muted" id="storageMode"></span></div>
-    <div class="tscroll"><table id="logTable"></table></div>
+    <div class="tscroll"><table id="logTable" class="fit"></table></div>
     <div class="log-more"><button class="btn sec" id="logMore" hidden>Afficher toutes les journées</button></div>
+    <div class="row backup"><button class="btn sec" type="button" id="btnExport">Sauvegarder mes données (fichier)</button><label class="btn sec" id="restoreWrap" hidden>Restaurer une sauvegarde<input type="file" id="restoreFile" accept="application/json,.json" hidden></label></div>
+    <p class="small muted" id="backupHint"></p>
   </div>
 </section>
 
@@ -212,9 +214,9 @@
 </div>
 <div class="overlay" id="evening" hidden>
   <form class="panel" id="eveningForm">
-    <p class="eyebrow" id="ev_eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c'est fait</h2>
+    <p class="eyebrow" id="ev_eyebrow">Saisie du soir</p><h2 style="margin:0 0 6px">20 secondes et c’est fait</h2>
     <p class="small muted" id="ev_goal"></p>
-    <input type="hidden" id="ev_date">
+    <label class="fl ev-date">Journée du<input type="date" id="ev_date" required></label>
     <div class="bigfields">
       <label class="fl">Km parcourus<input type="number" id="ev_km" inputmode="numeric" placeholder="340"></label>
       <label class="fl">Essence ($)<input type="number" id="ev_fuel" inputmode="decimal" step="0.01" placeholder="62"></label>
