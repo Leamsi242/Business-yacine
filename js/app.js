@@ -412,12 +412,14 @@
   $('#btnWorldGps').onclick = () => window.PYF.locateInWorld();
   $('#routeScore').addEventListener('submit', e => { e.preventDefault(); window.PYF.scoreRoute(); });
   function banner(msg) { const b = $('#netBanner'); b.textContent = msg; b.hidden = !msg; }
-  async function start() {
+  // method : 'pin' ou 'biometrie' juste après une connexion ; absent quand la session était déjà ouverte.
+  async function start(method) {
     $('#login').hidden = true;
     if (DB.unavailable) banner('Base partagée injoignable : ce que tu saisis reste sur ce téléphone seulement et n’ira pas dans la base. Recharge la page quand le réseau revient.');
     $('#f_date').value = window.PYU.today();
     let seen = false; try { seen = sessionStorage.getItem('py-landing') === '1'; } catch (e) {}
     if (seen) { $('#app').hidden = false; } else { $('#landing').hidden = false; }
+    if (window.PYAUTH) window.PYAUTH.record(method ? 'connexion' : 'ouverture', method || 'session');
     try { await refresh(); } catch (err) { banner('Chargement impossible (' + err.message + ') : les chiffres affichés sont incomplets. Recharge la page quand le réseau revient.'); }
     if (seen) { let t = 'dash'; try { t = localStorage.getItem('py-tab') || 'dash'; } catch (e) {} goTab(t); }
     window.PYF.resumeShift();
@@ -428,6 +430,31 @@
   $('#btnDrive').onclick = () => enterApp('world');
   $('#btnExplore').onclick = () => enterApp('dash');
   window.addEventListener('keydown', e => { if (e.key === 'Enter' && !$('#landing').hidden) enterApp('world'); });
-  $('#loginForm').addEventListener('submit', async e => { e.preventDefault(); const err = $('#loginErr'); err.hidden = true; try { await DB.login($('#pin').value.trim()); start(); } catch (ex) { err.textContent = 'PIN refusé ou base injoignable (' + ex.message + ').'; err.hidden = false; } });
-  if (DB.online && !DB.isConnected()) { $('#login').hidden = false; } else start();
+  /* ---------- Connexion : PIN, puis proposition de Touch ID / Face ID ; ensuite Touch ID directement ---------- */
+  const AU = window.PYAUTH;
+  async function showLogin() {
+    $('#login').hidden = false; $('#loginFields').hidden = false; $('#bioOffer').hidden = true;
+    $('#btnBio').hidden = !(AU && AU.enrolled() && await AU.available());
+  }
+  function loginError(msg) { const err = $('#loginErr'); err.textContent = msg; err.hidden = false; }
+  $('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault(); $('#loginErr').hidden = true; const p = $('#pin').value.trim();
+    if (/[^\x20-\x7e]/.test(p)) { loginError('Le PIN ne doit contenir ni accent ni caractère spécial (lettres sans accent, chiffres, espaces, tirets).'); return; }
+    try { await DB.login(p, 'pin'); } catch (ex) { loginError('PIN refusé ou base injoignable (' + ex.message + ').'); return; }
+    // Première connexion par PIN sur un appareil compatible : proposer Touch ID / Face ID une fois.
+    if (AU && !AU.enrolled() && !AU.declined() && await AU.available()) {
+      $('#loginFields').hidden = true; $('#bioOffer').hidden = false;
+      $('#bioYes').onclick = async () => { try { await AU.enroll(p); toast('Touch ID / Face ID activé sur cet appareil'); } catch (er) { toast(er.name === 'NotAllowedError' ? 'Activation annulée' : er.message); } start('pin'); };
+      $('#bioNo').onclick = () => { AU.decline(); start('pin'); };
+      return;
+    }
+    start('pin');
+  });
+  $('#btnBio').onclick = async () => {
+    $('#loginErr').hidden = true; let p;
+    try { p = await AU.unlock(); } catch (er) { loginError(er.name === 'NotAllowedError' ? 'Empreinte ou visage non reconnu, ou demande annulée. Entre le PIN.' : er.message); return; }
+    try { await DB.login(p, 'biometrie'); start('biometrie'); }
+    catch (ex) { if (/PIN refusé/.test(ex.message)) { AU.forget(); $('#btnBio').hidden = true; loginError('Le PIN a changé : entre le nouveau PIN (Touch ID sera proposé de nouveau).'); } else loginError('Base injoignable (' + ex.message + ').'); }
+  };
+  if (DB.online && !DB.isConnected()) showLogin(); else start();
 })();

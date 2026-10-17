@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pilote Yacine · Administration</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23C7000B'/%3E%3Cpath d='M11 24.5V7.5h6a5.25 5.25 0 0 1 0 10.5h-6' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='21.75' cy='23.5' r='2.25' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="admin">
+<!-- Back-office : journal des connexions de Yacine. Page non liée depuis le site ; la base ne rend les lignes
+     qu'aux requêtes portant le PIN administrateur (fonction check_admin, migration 6). -->
+<div id="adLogin" class="login">
+  <form class="card" id="adLoginForm">
+    <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect class="mark-bg" width="32" height="32" rx="8"/><path class="mark-fg" d="M11 24.5V7.5h6a5.25 5.25 0 0 1 0 10.5h-6"/><circle class="mark-dot" cx="21.75" cy="23.5" r="2.25"/></svg></span>Administration</h1>
+    <p class="muted">Journal des connexions de Pilote Yacine. Entre le PIN administrateur.</p>
+    <label class="fl">PIN administrateur<input type="password" id="adPin" autocomplete="current-password" required></label>
+    <p class="small bad" id="adErr" hidden></p>
+    <button class="btn" type="submit">Ouvrir</button>
+  </form>
+</div>
+
+<div id="adApp" hidden>
+<header class="top"><div class="hd">
+  <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><rect class="mark-bg" width="32" height="32" rx="8"/><path class="mark-fg" d="M11 24.5V7.5h6a5.25 5.25 0 0 1 0 10.5h-6"/><circle class="mark-dot" cx="21.75" cy="23.5" r="2.25"/></svg></span>Pilote Yacine <small>Administration</small></h1>
+  <div class="actions"><button class="btn sec" id="adCsv">Exporter (CSV)</button><button class="btn sec" id="adOut">Se déconnecter</button></div>
+</div></header>
+<main class="wrap">
+  <div class="view-head"><h2>Journal des connexions</h2><p class="small muted" id="adMode"></p></div>
+  <div class="tiles" id="adTiles"></div>
+  <div class="card">
+    <div class="ad-filters row">
+      <label class="fl">Période<select id="adPeriod"><option value="7">7 derniers jours</option><option value="30" selected>30 derniers jours</option><option value="90">90 derniers jours</option><option value="0">Tout</option></select></label>
+      <label class="fl">Événements<select id="adKind"><option value="">Tous</option><option value="connexion">Connexions</option><option value="ouverture">Ouvertures (session déjà ouverte)</option><option value="echec">PIN refusés</option><option value="alerte">Avec alerte</option></select></label>
+    </div>
+    <div id="adAlerts"></div>
+    <div class="tscroll"><table id="adTable" class="fit"></table></div>
+    <p class="small muted">Heures du Québec. Position seulement quand le téléphone l’a autorisée ; « à 3 km de la station » est mesuré à vol d’oiseau. Alertes : appareil jamais vu, connexion à plus de 150 km de la station, ou trois PIN refusés d’affilée.</p>
+  </div>
+  <div class="card" id="adActions">
+    <h2>Accès de Yacine</h2>
+    <p class="small muted">Changer son PIN coupe immédiatement toute session ouverte avec l’ancien, y compris Touch ID. Communique-lui le nouveau PIN.</p>
+    <form id="adPinForm" class="f"><label class="fl">Nouveau PIN de Yacine (10 caractères au moins, sans accent)<input type="text" id="adNewPin" minlength="10" autocomplete="off" required></label><button class="btn" type="submit">Changer le PIN de Yacine</button></form>
+    <p class="small" id="adPinMsg" role="status"></p>
+  </div>
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

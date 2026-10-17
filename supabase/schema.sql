@@ -196,3 +196,73 @@ create table if not exists reference (
 alter table reference enable row level security;
 drop policy if exists pin_reference on reference;
 create policy pin_reference on reference for all using (check_pin()) with check (check_pin());
+
+-- Migration 6 : journal des connexions, lisible par l'administrateur seul. À coller dans Supabase > SQL Editor > Run.
+-- Chaque ouverture de l'application (PIN, Touch ID ou session déjà ouverte) et chaque PIN refusé est consigné par
+-- la fonction log_access : date et heure fixées par la base, adresse IP et navigateur lus dans la requête,
+-- appareil et position GPS seulement si le téléphone l'autorise. Personne ne peut écrire, modifier ou effacer une
+-- ligne directement ; seule une requête portant le PIN administrateur (en-tête x-admin-pin) peut les lire.
+-- Après l'avoir collée, choisir le PIN administrateur (12 caractères au moins, différent de celui de Yacine) :
+--   update config set admin_pin = 'phrase administrateur' where id = 1;
+alter table config add column if not exists admin_pin text;
+alter table config drop constraint if exists config_admin_pin_long;
+alter table config add constraint config_admin_pin_long check (admin_pin is null or length(admin_pin) >= 12);
+
+create or replace function check_admin() returns boolean
+language sql security definer stable set search_path = public as $$
+  select coalesce((select admin_pin from config where id = 1), '') <> ''
+     and coalesce(current_setting('request.headers', true)::json->>'x-admin-pin', '') = (select admin_pin from config where id = 1);
+$$;
+
+create table if not exists access_log (
+  id bigint generated always as identity primary key,
+  at timestamptz not null default now(),
+  driver text not null default 'yacine',
+  ok boolean not null,                   -- PIN accepté par la base (jamais fourni par le site)
+  kind text not null,                    -- 'connexion', 'ouverture' (session déjà ouverte) ou 'echec'
+  method text,                           -- 'pin', 'biometrie' ou 'session'
+  ip text,
+  user_agent text,
+  device text,                           -- résumé lisible : « iPhone · Safari »
+  lat double precision,                  -- position seulement si autorisée sur le téléphone, jamais pour un échec
+  lon double precision,
+  accuracy double precision
+);
+create index if not exists access_log_at on access_log (at desc);
+alter table access_log enable row level security;
+drop policy if exists admin_read_log on access_log;
+create policy admin_read_log on access_log for select using (check_admin());
+-- Aucune policy d'écriture : insertion par log_access seulement, ni modification ni effacement possibles.
+
+create or replace function log_access(p_kind text, p_method text, p_device text,
+  p_lat double precision default null, p_lon double precision default null, p_acc double precision default null)
+returns boolean language plpgsql security definer volatile set search_path = public as $$
+declare
+  h json := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::json;
+  ok boolean := check_pin();
+begin
+  -- Garde-fou : au plus 60 lignes par tranche de 10 minutes (un PIN deviné à la chaîne ne remplit pas la table).
+  if (select count(*) from access_log where at > now() - interval '10 minutes') >= 60 then return ok; end if;
+  insert into access_log (ok, kind, method, ip, user_agent, device, lat, lon, accuracy) values (
+    ok,
+    case when ok and p_kind in ('connexion', 'ouverture') then p_kind when ok then 'connexion' else 'echec' end,
+    case when p_method in ('pin', 'biometrie', 'session') then p_method end,
+    left(trim(split_part(coalesce(h->>'x-forwarded-for', h->>'cf-connecting-ip', h->>'x-real-ip', ''), ',', 1)), 64),
+    left(h->>'user-agent', 300), left(p_device, 120),
+    case when ok then p_lat end, case when ok then p_lon end, case when ok then p_acc end);
+  return ok;
+end $$;
+
+-- Changer le PIN de Yacine depuis le back-office (coupe l'accès de toute session ouverte avec l'ancien PIN).
+create or replace function admin_set_pin(p_new text) returns boolean
+language plpgsql security definer volatile set search_path = public as $$
+begin
+  if not check_admin() then raise exception 'accès administrateur refusé'; end if;
+  if p_new = (select admin_pin from config where id = 1) then raise exception 'le PIN de Yacine doit différer du PIN administrateur'; end if;
+  update config set pin = p_new where id = 1;
+  return true;
+end $$;
+revoke all on function admin_set_pin(text) from public;
+grant execute on function log_access(text, text, text, double precision, double precision, double precision) to anon;
+grant execute on function admin_set_pin(text) to anon;
+grant execute on function check_admin() to anon;   -- le back-office vérifie le PIN administrateur

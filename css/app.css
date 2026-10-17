@@ -591,3 +591,33 @@ h1 .mark svg{width:100%;height:100%;display:block}
 /* Mur : un jour sans travail n'a pas de fond (simple contour), toute case pleine est une journée travaillée. */
 .wall .cal-d:not(.work){background:none;box-shadow:inset 0 0 0 1px var(--rule)}
 .wall .cal-d:not(.work).today{box-shadow:inset 0 0 0 2px var(--brand)}
+
+/* Connexion : bouton Touch ID / Face ID, proposition d'activation, avis de transparence du journal. */
+.bio-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-bottom:16px}
+.bio-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.bio-offer{padding:16px;border-radius:var(--r);background:var(--surface-2)}
+.bio-offer .row{margin-top:12px}
+.login-notice{margin-top:16px;line-height:1.5}
+
+/* Back-office (admin.html) : filtres, alertes, lignes signalées. */
+.admin .wrap{padding-top:24px}
+.admin .card{margin-top:20px}
+.ad-filters{gap:16px;align-items:flex-end;margin-bottom:12px}
+.ad-filters .fl{min-width:220px}
+.ad-alert{margin:4px 0 12px}
+#adTable tr.ad-flag td{background:var(--warn-bg,#FFF4E0)}
+#adTable td{vertical-align:middle}
+#adPinForm{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+#adPinForm .fl{flex:1 1 280px}
+/* Back-office sur téléphone : une carte par connexion plutôt qu'un tableau trop large. */
+@container (max-width:640px){
+  #adTable tr:first-child{display:none}
+  #adTable tr{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--rule)}
+  #adTable td{display:block;padding:0;border:0}
+  #adTable td.ad-when{font-weight:600}
+  #adTable td.ad-dev{grid-column:2;grid-row:1;text-align:right;color:var(--ink-2)}
+  #adTable td:nth-child(2),#adTable td.ad-pos{grid-column:1/-1}
+  #adTable tr.ad-flag{padding-inline:8px;border-radius:8px}
+}
+@container (max-width:640px){#adTable tr.ad-flag{background:var(--warn-bg,#FFF4E0)}#adTable tr.ad-flag td{background:none}}
+.bio-btn svg{width:24px;height:24px;flex:none}

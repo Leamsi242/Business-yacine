@@ -12,12 +12,14 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 ## Pile technique
 
 - Page unique `index.html`, JavaScript vanille sans bundler, scripts chargés dans l'ordre : config, util, data, db,
-  pdf-import, world, features, savings, app. Chaque script expose un objet global (`PYU`, `PYDB`, `PYPDF`,
+  auth, pdf-import, world, features, savings, app. Chaque script expose un objet global (`PYU`, `PYDB`, `PYAUTH`, `PYPDF`,
   `PY_TARIFFS`, `PY_WORLD`, `PYF`, `PYS`, `PYAPP`).
 - Données : Supabase (projet `uawvvuzwkfpdzlgxlpdg`) avec sécurité par PIN (RLS, fonction `check_pin()` qui lit
   l'en-tête `x-pin`). La clé anonyme dans `js/config.js` est publique par conception ; ne jamais mettre la clé
   `service_role` dans le site. Sans configuration, le site tourne en mode local (`localStorage`, clé `pilote-yacine-v2`).
-- Schéma dans `supabase/schema.sql` (migrations 2 à 4 incluses ; la 4 impose un PIN de 10 caractères au moins). Toute nouvelle colonne demande une migration
+- Schéma dans `supabase/schema.sql` (migrations 2 à 6 incluses ; la 4 impose un PIN de 10 caractères au moins, la 6
+  ajoute le journal des connexions `access_log` et le PIN administrateur). Règles vérifiées sur un vrai PostgreSQL par
+  `tests/sql/access-log.sql` (`PGURL=... sh tests/sql/run.sh`, base jetable uniquement). Toute nouvelle colonne demande une migration
   que l'utilisateur colle dans Supabase > SQL Editor ; le test « contrat de schéma » refuse un objet envoyé avec une
   colonne inconnue. Ce qui ne s'enregistre pas (ex. `meta.sig`, `meta.driver_code`) ne va pas dans `inv` ni `parcels`.
 - Bibliothèques CDN (jsDelivr, fichiers npm tels quels, avec `integrity` sha384) : Leaflet 1.9.4, supabase-js 2.45.4
@@ -25,6 +27,13 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
   (`openssl dgst -sha384 -binary fichier | openssl base64 -A` sur le fichier du paquet npm) et de mettre à jour le
   worker et `tests/e2e/fixtures.js`. Police Google Inter.
 - Une base configurée mais injoignable affiche le bandeau `#netBanner` ; ne jamais retomber en local en silence.
+- Connexion : PIN (sans accent, il voyage dans un en-tête HTTP) ou Touch ID / Face ID (`js/auth.js`, WebAuthn avec
+  l'extension PRF qui chiffre le PIN sur l'appareil ; sans PRF, l'option n'est pas proposée, jamais de PIN en clair).
+- Journal des connexions : chaque ouverture appelle `PYAUTH.record` puis la fonction SQL `log_access` (heure, IP et
+  réussite fixées par la base ; appareil et position seulement si le téléphone l'autorise). Lecture réservée au
+  back-office `admin.html` (non lié, `noindex`) avec le PIN administrateur (en-tête `x-admin-pin`, `check_admin()`),
+  qui peut aussi changer le PIN de Yacine (`admin_set_pin`). L'écran de connexion annonce la consignation : la garder
+  visible (transparence exigée par la Loi 25 pour la localisation).
 
 ## Règles du code
 
@@ -81,7 +90,7 @@ slogans, police propriétaire).
 ```
 npm ci                       # dépendances de test (jsdom, Playwright) ; le site n'a aucune dépendance d'exécution
 node tests/e2e/serve.js      # sert le site sur http://localhost:8787/
-npm run test:unit            # 120 tests, node:test + jsdom, 15 s
+npm run test:unit            # 148 tests, node:test + jsdom, 20 s
 npm run test:unit:coverage   # idem avec la couverture des scripts du site (seuil CI 75 %)
 npm run test:contract        # Supabase (réseau) ; PY_TEST_PIN=xxxx pour les cas avec PIN
 npx playwright install chromium && npm run test:e2e   # Chromium ordinateur et téléphone
@@ -92,6 +101,8 @@ un test sont dans `TESTING.md`. Toute correction de bug s'accompagne d'un test q
 
 ## En attente côté utilisateur
 
+- Coller la migration 6 (fin de `supabase/schema.sql`) et choisir le PIN administrateur :
+  `update config set admin_pin = '...' where id = 1;` (12 caractères au moins), puis ouvrir `admin.html`.
 - Ajouter le secret GitHub `PY_TEST_PIN` pour que la CI vérifie la connexion avec le bon PIN.
 - Coller la migration 4 (fin de `supabase/schema.sql`) dans Supabase > SQL Editor, puis passer à un PIN long :
   `update config set pin = 'phrase de passe' where id = 1;` (10 caractères au moins).

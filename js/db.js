@@ -12,7 +12,8 @@
   try { pin = sessionStorage.getItem(LS + '-pin') || ''; } catch (e) {}
 
   function local() {
-    try { return JSON.parse(localStorage.getItem(LS) || 'null') || { days: [], parcels: [], invoices: [], goals: {}, localities: [] }; }
+    // Une sauvegarde restaurée peut ne pas avoir toutes les listes : on complète plutôt que de planter.
+    try { return Object.assign({ days: [], parcels: [], invoices: [], goals: {}, localities: [] }, JSON.parse(localStorage.getItem(LS) || 'null') || {}); }
     catch (e) { return { days: [], parcels: [], invoices: [], goals: {}, localities: [] }; }
   }
   function saveLocal(s) { try { localStorage.setItem(LS, JSON.stringify(s)); } catch (e) {} }
@@ -43,12 +44,14 @@
     mode: () => online ? 'supabase' : 'local',
 
     // Vérifie le PIN : une lecture qui renvoie une ligne prouve que le PIN est bon.
-    async login(p) {
+    // Un PIN refusé est consigné comme échec dans le journal des connexions (method : 'pin' ou 'biometrie').
+    async login(p, method) {
       if (!online) return true;
       connect(p);
       const r = await client.from('goals').select('driver').limit(1);
-      if (r.error) { client = null; throw new Error(r.error.message); }
-      if (!r.data || !r.data.length) { client = null; throw new Error('PIN refusé'); }
+      const drop = () => { client = null; pin = ''; try { sessionStorage.removeItem(LS + '-pin'); } catch (e) {} };
+      if (r.error) { drop(); throw new Error(r.error.message); }
+      if (!r.data || !r.data.length) { const c = client; drop(); try { await c.rpc('log_access', { p_kind: 'connexion', p_method: method || 'pin', p_device: null }); } catch (e) {} throw new Error('PIN refusé'); }
       return true;
     },
     logout() { pin = ''; client = null; try { sessionStorage.removeItem(LS + '-pin'); } catch (e) {} },
@@ -165,6 +168,17 @@
       return fail(await client.from('budget').upsert(b, { onConflict: 'driver' }).select());
     },
     _readAll: readAll,
+    // Journal des connexions : en ligne par la fonction log_access (la base fixe l'heure, l'IP et la réussite) ;
+    // en mode local, dans ce navigateur (500 dernières lignes).
+    async logAccess(e) {
+      if (!online) {
+        const s = local(); s.accessLog = [{ at: new Date().toISOString(), ok: true, kind: e.kind, method: e.method, device: e.device || null, lat: e.lat ?? null, lon: e.lon ?? null, accuracy: e.acc ?? null }].concat(s.accessLog || []).slice(0, 500);
+        saveLocal(s); return true;
+      }
+      if (!client) return false;
+      const r = await client.rpc('log_access', { p_kind: e.kind, p_method: e.method, p_device: e.device || null, p_lat: e.lat ?? null, p_lon: e.lon ?? null, p_acc: e.acc ?? null });
+      return !r.error && r.data === true;
+    },
     exportLocal() { return JSON.stringify(local()); },
     importLocal(txt) { const s = JSON.parse(txt); if (!s || !Array.isArray(s.days)) throw new Error('format'); saveLocal(s); }
   };

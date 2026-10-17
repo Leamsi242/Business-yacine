@@ -9,7 +9,7 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const REFERENCE = require('./reference');
-const SCRIPTS = ['config', 'util', 'data', 'db', 'pdf-import', 'tariffs', 'world', 'features', 'savings', 'app'];
+const SCRIPTS = ['config', 'util', 'data', 'db', 'auth', 'pdf-import', 'tariffs', 'world', 'features', 'savings', 'app'];
 
 const LOCAL_CONFIG = `window.PY_CONFIG = { SUPABASE_URL: "", SUPABASE_ANON_KEY: "", DEFAULT_DRIVER: "yacine",
   STATION: { name: "Station DRUM", lat: 45.885, lon: -72.49 }, HOME: { name: "Sherbrooke", lat: 45.40, lon: -71.89 }, FUEL_PRICE: 1.90 };`;
