@@ -36,10 +36,6 @@ describe('journal des connexions (mode local)', () => {
       assert.equal(saved(c).accessLog[0].lat, null);
     } finally { c.close(); }
   });
-  test('l’écran de connexion prévient que les connexions sont consignées', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    assert.match(html, /Chaque connexion est consignée \(date, heure, appareil, adresse IP et position si tu l’autorises\) et consultable par l’administrateur/);
-  });
   test('appareil lisible', async () => {
     const c = await boot({ now: NOW, noHistory: true });
     try {

@@ -32,8 +32,8 @@ sur `main` déploie (`.github/workflows/pages.yml`) et lance les tests (`.github
 - Journal des connexions : chaque ouverture appelle `PYAUTH.record` puis la fonction SQL `log_access` (heure, IP et
   réussite fixées par la base ; appareil et position seulement si le téléphone l'autorise). Lecture réservée au
   back-office `admin.html` (non lié, `noindex`) avec le PIN administrateur (en-tête `x-admin-pin`, `check_admin()`),
-  qui peut aussi changer le PIN de Yacine (`admin_set_pin`). L'écran de connexion annonce la consignation : la garder
-  visible (transparence exigée par la Loi 25 pour la localisation).
+  qui peut aussi changer le PIN de Yacine (`admin_set_pin`). Pas d'avis sur l'écran de connexion : l'administrateur
+  (le frère de Yacine) l'en informe de vive voix.
 
 ## Règles du code
 
