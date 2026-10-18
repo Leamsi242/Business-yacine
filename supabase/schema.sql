@@ -76,11 +76,29 @@ create table if not exists drivers (
 );
 
 -- Sécurité : un code PIN envoyé dans l'en-tête HTTP x-pin par le site.
+-- Limite d'essais : après 10 PIN faux en 15 minutes, plus aucun PIN n'est accepté pendant 15 minutes (le blocage
+-- tombe tout seul). Pas par adresse IP : l'en-tête x-forwarded-for peut être falsifié. Pendant le blocage, les
+-- essais ne sont pas comptés, donc un attaquant ne peut pas prolonger le blocage au-delà de 15 minutes.
+create table if not exists pin_failures (
+  id bigint generated always as identity primary key,
+  at timestamptz not null default now()
+);
+create index if not exists pin_failures_at on pin_failures (at);
+alter table pin_failures enable row level security;   -- aucune policy : personne ne lit ni n'écrit depuis le site
+
 create or replace function check_pin() returns boolean
-language sql security definer stable set search_path = public, pg_temp as $$
-  select coalesce(current_setting('request.headers', true)::json->>'x-pin', '')
-       = (select pin from config where id = 1);
-$$;
+language plpgsql security definer volatile set search_path = public, pg_temp as $$
+declare
+  ok boolean;
+begin
+  if (select count(*) from pin_failures where at > now() - interval '15 minutes') >= 10 then return false; end if;
+  ok := coalesce(current_setting('request.headers', true)::json->>'x-pin', '') = (select pin from config where id = 1);
+  if not coalesce(ok, false) then
+    insert into pin_failures default values;
+    delete from pin_failures where at < now() - interval '1 day';
+  end if;
+  return coalesce(ok, false);
+end $$;
 
 alter table config     enable row level security;
 alter table days       enable row level security;
