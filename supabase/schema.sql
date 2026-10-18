@@ -77,7 +77,7 @@ create table if not exists drivers (
 
 -- Sécurité : un code PIN envoyé dans l'en-tête HTTP x-pin par le site.
 create or replace function check_pin() returns boolean
-language sql security definer stable as $$
+language sql security definer stable set search_path = public, pg_temp as $$
   select coalesce(current_setting('request.headers', true)::json->>'x-pin', '')
        = (select pin from config where id = 1);
 $$;
@@ -209,7 +209,7 @@ alter table config drop constraint if exists config_admin_pin_long;
 alter table config add constraint config_admin_pin_long check (admin_pin is null or length(admin_pin) >= 12);
 
 create or replace function check_admin() returns boolean
-language sql security definer stable set search_path = public as $$
+language sql security definer stable set search_path = public, pg_temp as $$
   select coalesce((select admin_pin from config where id = 1), '') <> ''
      and coalesce(current_setting('request.headers', true)::json->>'x-admin-pin', '') = (select admin_pin from config where id = 1);
 $$;
@@ -236,13 +236,15 @@ create policy admin_read_log on access_log for select using (check_admin());
 
 create or replace function log_access(p_kind text, p_method text, p_device text,
   p_lat double precision default null, p_lon double precision default null, p_acc double precision default null)
-returns boolean language plpgsql security definer volatile set search_path = public as $$
+returns boolean language plpgsql security definer volatile set search_path = public, pg_temp as $$
 declare
   h json := coalesce(nullif(current_setting('request.headers', true), ''), '{}')::json;
   ok boolean := check_pin();
 begin
-  -- Garde-fou : au plus 60 lignes par tranche de 10 minutes (un PIN deviné à la chaîne ne remplit pas la table).
-  if (select count(*) from access_log where at > now() - interval '10 minutes') >= 60 then return ok; end if;
+  -- Garde-fou : plafonds séparés. Les échecs (au plus 60 par 10 minutes) ne peuvent pas saturer le journal au point
+  -- d'empêcher la connexion réelle de Yacine d'être consignée (200 succès par 10 minutes).
+  if ok and (select count(*) from access_log where at > now() - interval '10 minutes' and access_log.ok) >= 200 then return ok; end if;
+  if not ok and (select count(*) from access_log where at > now() - interval '10 minutes' and not access_log.ok) >= 60 then return ok; end if;
   insert into access_log (ok, kind, method, ip, user_agent, device, lat, lon, accuracy) values (
     ok,
     case when ok and p_kind in ('connexion', 'ouverture') then p_kind when ok then 'connexion' else 'echec' end,
@@ -255,7 +257,7 @@ end $$;
 
 -- Changer le PIN de Yacine depuis le back-office (coupe l'accès de toute session ouverte avec l'ancien PIN).
 create or replace function admin_set_pin(p_new text) returns boolean
-language plpgsql security definer volatile set search_path = public as $$
+language plpgsql security definer volatile set search_path = public, pg_temp as $$
 begin
   if not check_admin() then raise exception 'accès administrateur refusé'; end if;
   if p_new = (select admin_pin from config where id = 1) then raise exception 'le PIN de Yacine doit différer du PIN administrateur'; end if;

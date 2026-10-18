@@ -63,5 +63,15 @@ reset role;
 set role anon;
 select pg_temp.as_anon('{"x-pin":"nouveau-pin-123"}');
 do $$ begin assert (select log_access('ouverture', 'session', 'x')) = true, 'PIN conservé après relance du schéma'; end $$;
+-- 8. Une attaque par PIN faux ne doit pas faire taire la vraie connexion de Yacine (plafonds séparés).
+select pg_temp.as_anon('{"x-pin":"mauvais"}');
+do $$ begin for i in 1..100 loop perform log_access('connexion', 'pin', 'attaque', null, null, null); end loop; end $$;
+select pg_temp.as_anon('{"x-pin":"nouveau-pin-123"}');
+do $$ begin assert (select log_access('connexion', 'pin', 'connexion-apres-attaque')) = true, 'succès accepté pendant l’attaque'; end $$;
+select pg_temp.as_anon('{"x-admin-pin":"pin-admin-tres-long"}');
+do $$ begin
+  assert (select count(*) from access_log where not ok) = 60, 'échecs plafonnés à 60 par 10 minutes';
+  assert (select count(*) from access_log where ok and device = 'connexion-apres-attaque') = 1, 'connexion réelle consignée malgré l’attaque';
+end $$;
 \o
 select 'OK : journal des connexions et accès administrateur' as resultat;
