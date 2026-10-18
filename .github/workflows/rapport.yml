@@ -1,0 +1,22 @@
+name: Rapport hebdomadaire
+on:
+  schedule:
+    - cron: '0 23 * * 0'   # dimanche 23 h UTC : 19 h à Toronto en été, 18 h en hiver
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  envoyer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Envoyer le rapport de la semaine
+        run: node scripts/rapport.mjs
+        env:
+          YACINE_PIN: ${{ secrets.PY_TEST_PIN }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          RAPPORT_FROM: ${{ secrets.RAPPORT_FROM }}
+          RAPPORT_TO: ${{ secrets.RAPPORT_TO }}
