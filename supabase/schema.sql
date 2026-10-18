@@ -286,3 +286,10 @@ revoke all on function admin_set_pin(text) from public;
 grant execute on function log_access(text, text, text, double precision, double precision, double precision) to anon;
 grant execute on function admin_set_pin(text) to anon;
 grant execute on function check_admin() to anon;   -- le back-office vérifie le PIN administrateur
+
+-- Migration 7 : le back-office lit les journées et les shifts (lecture seule, avec le PIN administrateur).
+-- Aucune écriture pour l'administrateur : les policies pin_days et pin_shifts restent seules à modifier.
+drop policy if exists admin_read_days on days;
+create policy admin_read_days on days for select using (check_admin());
+drop policy if exists admin_read_shifts on shifts;
+create policy admin_read_shifts on shifts for select using (check_admin());

@@ -71,11 +71,45 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' })); a.download = 'connexions-yacine-' + U.today() + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
 
+  // Aujourd'hui, à l'heure du Québec : journée et shift de Yacine, en lecture seule.
+  const todayTor = () => new Intl.DateTimeFormat('fr-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  async function fetchToday() {
+    const date = todayTor();
+    if (!online) { let s = {}; try { s = JSON.parse(localStorage.getItem(LS) || 'null') || {}; } catch (e) {} return { date, day: (s.days || []).find(d => d.date === date) || null, shift: (s.shifts || []).find(x => x.date === date) || null }; }
+    const [d, s] = await Promise.all([client.from('days').select('*').eq('date', date), client.from('shifts').select('*').eq('date', date)]);
+    if (d.error) throw new Error(d.error.message); if (s.error) throw new Error(s.error.message);
+    return { date, day: d.data[0] || null, shift: s.data[0] || null };
+  }
+  const ROUTE = { urbain: 'urbaine', rural: 'rurale proche', loin: 'rurale éloignée' };
+  function renderToday(t) {
+    const sh = t.shift, d = t.day, last = ROWS.reduce((m, r) => !m || r.at > m.at ? r : m, null);
+    const status = sh && sh.ended_at ? ['good', 'Shift terminé'] : sh && sh.started_at ? ['good', 'Shift en cours'] : d ? ['good', 'Journée saisie'] : ['warn', 'Pas encore commencé'];
+    const km = sh && sh.km_gps != null ? nf(sh.km_gps, 1) + ' km (GPS)' : d && d.km != null ? nf(d.km, 1) + ' km (saisis)' : '—';
+    $('#adToday').innerHTML = `<p><span class="pill ${status[0]}">${status[1]}</span></p>
+      <div class="kv">
+        <span>Brief du matin</span><b>${sh ? nf(sh.goal_parcels || 0) + ' colis visés' + (sh.route_type ? ', route ' + esc(ROUTE[sh.route_type] || sh.route_type) : '') : 'pas encore lu'}</b>
+        <span>Début du shift</span><b>${sh && sh.started_at ? hour(sh.started_at) : '—'}</b>
+        <span>Fin du shift</span><b>${sh && sh.ended_at ? hour(sh.ended_at) : '—'}</b>
+        <span>Kilomètres</span><b>${km}</b>
+        <span>Colis</span><b>${d ? nf(d.parcels) + (sh && sh.goal_parcels ? ' sur ' + nf(sh.goal_parcels) + ' visés' : '') : '—'}</b>
+        <span>Facturé</span><b>${d && d.invoiced > 0 ? nf(d.invoiced, 2) + ' $' : 'en attente de facture'}</b>
+        <span>Essence</span><b>${d && d.fuel != null ? nf(d.fuel, 2) + ' $' : '—'}</b>
+        <span>Dernière activité</span><b>${last ? day(last.at) + ' · ' + hour(last.at) : 'aucune'}</b>
+      </div>
+      ${d && d.note ? `<p class="small muted">Note : ${esc(d.note)}</p>` : ''}`;
+  }
+  async function loadToday() {
+    $('#adTodayDate').textContent = todayTor() + ' (heure du Québec)';
+    try { renderToday(await fetchToday()); } catch (e) { $('#adToday').innerHTML = `<p class="small bad">Lecture de la journée impossible : ${esc(e.message)}</p>`; }
+  }
+  $('#adRefresh').onclick = loadToday;
+
   async function open() {
     $('#adLogin').hidden = true; $('#adApp').hidden = false;
     $('#adMode').textContent = online ? 'Données de la base partagée, lisibles avec le PIN administrateur seulement.' : 'Mode local : journal gardé dans ce navigateur (aucune base configurée).';
     $('#adActions').hidden = !online;
     try { ROWS = annotate(await fetchRows()); render(); } catch (e) { toast('Lecture impossible : ' + e.message); }
+    loadToday();
   }
   $('#adLoginForm').addEventListener('submit', async e => {
     e.preventDefault(); const err = $('#adErr'); err.hidden = true; const p = $('#adPin').value.trim();

@@ -78,5 +78,14 @@ do $$ begin
   assert (select count(*) from access_log where not ok) = 60, 'échecs plafonnés à 60 par 10 minutes';
   assert (select count(*) from access_log where ok and device = 'apres-le-blocage') = 1, 'connexion après blocage consignée';
 end $$;
+-- 9. Journées et shifts : Yacine écrit, l'administrateur lit seulement.
+select pg_temp.as_anon('{"x-pin":"nouveau-pin-123"}');
+do $$ begin insert into days (date, parcels, invoiced) values ('2026-10-18', 180, 360); end $$;
+select pg_temp.as_anon('{"x-admin-pin":"pin-admin-tres-long"}');
+do $$ begin
+  assert (select count(*) from days where date = '2026-10-18') = 1, 'admin lit la journée';
+  begin insert into days (date, parcels, invoiced) values ('2026-10-19', 1, 1); raise exception 'admin écrit une journée';
+  exception when insufficient_privilege or others then if sqlerrm = 'admin écrit une journée' then raise; end if; end;
+end $$;
 \o
 select 'OK : journal des connexions et accès administrateur' as resultat;
